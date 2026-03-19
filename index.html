@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AgriConnect — Hub-In Rwanda</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{--gd:#1a3a0f;--gm:#2d6a1f;--gb:#3d8f2a;--gl:#e8f5e2;--am:#c47a1a;--al:#fef3dc;--bl:#1a5fa8;--bll:#e4eef9;--rd:#b83232;--rll:#fdeaea;--g9:#1a1a18;--g7:#3d3d38;--g5:#6b6b64;--g3:#b8b8b0;--g1:#f0f0eb;--g0:#fafaf7;--w:#fff;--sh:0 1px 4px rgba(0,0,0,0.08);--rsm:8px;--rmd:12px;--rlg:18px;--rxl:24px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--g1);color:var(--g9);overscroll-behavior:none;}
+input,select,textarea,button{font-family:'DM Sans',sans-serif;}
+.page{display:none;}.page.show{display:flex;flex-direction:column;min-height:100vh;}
+#pg-load{background:var(--gd);align-items:center;justify-content:center;}
+.load-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.load-icon{width:72px;height:72px;background:var(--gb);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.load-t{font-family:'DM Serif Display',serif;font-size:28px;color:var(--w);}
+.load-s{font-size:13px;color:rgba(255,255,255,0.4);}
+.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.2);border-top-color:var(--w);border-radius:50%;animation:spin 0.8s linear infinite;margin-top:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#pg-land{background:var(--gd);align-items:center;justify-content:center;padding:32px 20px 24px;text-align:center;position:relative;}
+.lang-row{position:absolute;top:14px;right:14px;display:flex;gap:5px;}
+.lang-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.65);border-radius:16px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.lang-btn.active{background:rgba(255,255,255,0.25);color:var(--w);border-color:rgba(255,255,255,0.4);}
+.land-logo{display:flex;align-items:center;gap:12px;margin-bottom:36px;justify-content:center;}
+.land-icon{width:54px;height:54px;background:var(--gb);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.land-name{font-family:'DM Serif Display',serif;font-size:30px;color:var(--w);}
+.land-by{font-size:11px;color:rgba(255,255,255,0.4);margin-top:1px;}
+.land-h{font-family:'DM Serif Display',serif;font-size:32px;color:var(--w);line-height:1.15;margin-bottom:10px;}
+.land-s{font-size:14px;color:rgba(255,255,255,0.55);margin-bottom:36px;line-height:1.6;max-width:300px;}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:340px;}
+.rb{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:var(--rlg);padding:18px 14px;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--w);}
+.rb:hover{background:rgba(255,255,255,0.13);transform:translateY(-2px);}
+.rb .ri{font-size:26px;margin-bottom:6px;}.rb .rn{font-size:13px;font-weight:600;}.rb .rd{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.rb.full{grid-column:1/-1;display:flex;align-items:center;gap:14px;text-align:left;padding:13px 18px;}
+.rb.full .ri{font-size:20px;margin-bottom:0;}
+.copy{font-size:11px;color:rgba(255,255,255,0.18);margin-top:22px;}
+#pg-auth{background:var(--gd);align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.aw{width:100%;max-width:380px;display:flex;flex-direction:column;}
+.ab-back{background:none;border:none;color:rgba(255,255,255,0.55);font-size:14px;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:6px;align-self:flex-start;}
+.ab{background:var(--w);border-radius:var(--rxl);padding:26px 22px;}
+.art{display:inline-flex;align-items:center;gap:6px;background:var(--gl);color:var(--gd);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:16px;}
+.at{font-family:'DM Serif Display',serif;font-size:22px;color:var(--g9);margin-bottom:4px;}
+.as{font-size:13px;color:var(--g5);margin-bottom:18px;line-height:1.5;}
+.atabs{display:flex;background:var(--g1);border-radius:var(--rsm);padding:3px;margin-bottom:18px;}
+.atab{flex:1;padding:8px;border:none;background:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;color:var(--g5);transition:all 0.15s;}
+.atab.active{background:var(--w);color:var(--g9);font-weight:600;box-shadow:var(--sh);}
+.err{background:var(--rll);border:1px solid var(--rd);color:var(--rd);border-radius:var(--rsm);padding:10px 13px;font-size:13px;margin-bottom:13px;display:none;}
+.fg{margin-bottom:13px;}.fl{font-size:12px;font-weight:600;color:var(--g5);margin-bottom:5px;display:block;}
+.fi{width:100%;padding:10px 13px;border:1.5px solid var(--g1);border-radius:var(--rsm);font-size:14px;color:var(--g9);background:var(--g0);transition:border-color 0.15s;}
+.fi:focus{outline:none;border-color:var(--gm);background:var(--w);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.abtn{width:100%;padding:13px;border:none;border-radius:var(--rsm);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;margin-top:4px;}
+.abtn-g{background:var(--gm);color:var(--w);}.abtn-g:hover{background:var(--gd);}
+.abtn-r{background:var(--rd);color:var(--w);}.abtn-a{background:var(--am);color:var(--w);}
+.abtn:active{transform:scale(0.98);}
+.phone-wrap{display:flex;align-items:center;border:1.5px solid var(--g1);border-radius:var(--rsm);overflow:hidden;background:var(--g0);transition:border-color 0.15s;}
+.phone-wrap:focus-within{border-color:var(--gm);background:var(--w);}
+.phone-pfx{padding:10px 10px 10px 13px;font-size:13px;color:var(--g5);border-right:1px solid var(--g1);white-space:nowrap;background:var(--g1);}
+.phone-inp{flex:1;padding:10px 13px;border:none;background:transparent;font-size:14px;color:var(--g9);outline:none;}
+#pg-app{max-width:480px;margin:0 auto;background:var(--g0);}
+.topbar{background:var(--w);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g1);position:sticky;top:0;z-index:50;}
+.tbl{display:flex;align-items:center;gap:10px;}
+.tbav{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+.tbn{font-size:14px;font-weight:600;color:var(--g9);}.tbloc{font-size:11px;color:var(--g3);}
+.tbrole{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;}
+.tbout{background:none;border:none;color:var(--g3);font-size:20px;cursor:pointer;padding:4px;}
+.scr{display:none;padding:16px;animation:fadeUp 0.2s ease;}.scr.show{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.bnav{background:var(--w);border-top:1px solid var(--g1);display:flex;position:sticky;bottom:0;z-index:50;}
+.bn{flex:1;padding:10px 4px 12px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.bn .ni{font-size:19px;}.bn .nl{font-size:10px;color:var(--g3);font-weight:500;}.bn.active .nl{font-weight:700;}
+.farmer .tbav{background:var(--gl);}.farmer .tbrole{background:var(--gl);color:var(--gd);}.farmer .bn.active .nl{color:var(--gm);}
+.broker .tbav{background:var(--bll);}.broker .tbrole{background:var(--bll);color:var(--bl);}.broker .bn.active .nl{color:var(--bl);}
+.transporter .tbav{background:var(--al);}.transporter .tbrole{background:var(--al);color:var(--am);}.transporter .bn.active .nl{color:var(--am);}
+.govt .tbav{background:var(--rll);}.govt .tbrole{background:var(--rll);color:var(--rd);}.govt .bn.active .nl{color:var(--rd);}
+.card{background:var(--w);border-radius:var(--rmd);padding:15px;margin-bottom:12px;box-shadow:var(--sh);}
+.ct{font-size:11px;font-weight:700;color:var(--g3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.sb{background:var(--g0);border-radius:var(--rsm);padding:12px;border:1px solid var(--g1);}
+.sl{font-size:11px;color:var(--g5);}.sv{font-size:21px;font-weight:700;color:var(--g9);margin-top:2px;}.ss{font-size:11px;margin-top:2px;}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.bg{background:var(--gl);color:var(--gd);}.ba{background:var(--al);color:var(--am);}.bb{background:var(--bll);color:var(--bl);}.bgr{background:var(--g1);color:var(--g5);}
+.lcard{background:var(--w);border-radius:var(--rmd);padding:14px;margin-bottom:10px;box-shadow:var(--sh);border-left:3px solid var(--g3);}
+.lcard-maize{border-left-color:#f5a623;}.lcard-beans{border-left-color:#7b5ea7;}.lcard-potatoes{border-left-color:#c47a1a;}.lcard-tomatoes{border-left-color:#e24b4b;}.lcard-sorghum{border-left-color:#b8860b;}.lcard-cassava{border-left-color:#5c9e3a;}.lcard-rice{border-left-color:#3a7cc1;}.lcard-banana{border-left-color:#c9a800;}.lcard-wheat{border-left-color:#a08040;}.lcard-other{border-left-color:#888;}
+.lt{display:flex;gap:12px;margin-bottom:10px;}
+.li{width:46px;height:46px;border-radius:var(--rsm);background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.linfo{flex:1;}.ln{font-size:15px;font-weight:600;}.lm{font-size:12px;color:var(--g5);margin-top:2px;}
+.lp{text-align:right;}.lamt{font-size:17px;font-weight:700;color:var(--gm);}.lunit{font-size:11px;color:var(--g3);}
+.lf{display:flex;align-items:center;justify-content:space-between;}.star{color:#f5a623;}
+.btn{padding:10px 18px;border-radius:var(--rsm);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;}
+.btn:active{transform:scale(0.97);}
+.btn-g{background:var(--gm);color:var(--w);}.btn-g:hover{background:var(--gd);}
+.btn-a{background:var(--am);color:var(--w);}.btn-b{background:var(--bl);color:var(--w);}.btn-r{background:var(--rd);color:var(--w);}
+.btn-og{background:none;border:1.5px solid var(--gm);color:var(--gm);}.btn-ob{background:none;border:1.5px solid var(--bl);color:var(--bl);}
+.btn-sm{padding:7px 13px;font-size:13px;}.btn-full{width:100%;padding:13px;text-align:center;}
+.sh2{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px;}
+.st{font-family:'DM Serif Display',serif;font-size:20px;color:var(--g9);}
+.sc2{font-size:12px;color:var(--g5);background:var(--g1);padding:3px 10px;border-radius:20px;}
+.jcard{background:var(--w);border-radius:var(--rmd);padding:14px;margin-bottom:10px;box-shadow:var(--sh);}
+.jr{font-size:15px;font-weight:700;margin-bottom:2px;}.jd{font-size:12px;color:var(--g5);margin-bottom:10px;}
+.jmg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.jml{font-size:11px;color:var(--g3);}.jmv{font-size:13px;font-weight:600;margin-top:1px;}
+.jpay{font-size:18px;font-weight:700;color:var(--am);}
+.retload{background:linear-gradient(135deg,var(--gl),var(--bll));border:1px solid var(--gb);border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;display:flex;gap:8px;}
+.retload-t{font-size:12px;font-weight:700;color:var(--gd);}.retload-s{font-size:11px;color:var(--g5);margin-top:2px;}
+.trow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--g1);}
+.trow:last-child{border-bottom:none;}
+.tc{font-size:14px;font-weight:500;}.tpr{font-size:14px;font-weight:700;}
+.tch{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.up{background:var(--gl);color:var(--gd);}.dn{background:var(--rll);color:var(--rd);}
+/* famine */
+.riskrow{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.rreg{font-size:13px;color:var(--g7);width:115px;flex-shrink:0;}
+.rtrack{flex:1;background:var(--g1);border-radius:4px;height:9px;overflow:hidden;}
+.rfill{height:9px;border-radius:4px;transition:width 0.8s ease;}
+.rc{background:var(--rd);}.rh{background:var(--am);}.rm{background:var(--gb);}.rl4{background:#1D9E75;}
+.rscore{font-size:12px;font-weight:700;width:32px;text-align:right;}
+.risk-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.risk-c{background:var(--rll);color:var(--rd);}.risk-h{background:var(--al);color:var(--am);}.risk-m{background:var(--gl);color:var(--gm);}.risk-l{background:#e0f5ee;color:#1D9E75;}
+.famine-method{background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;font-size:11px;color:var(--g5);line-height:1.6;margin-top:8px;}
+.famine-src{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.fsrc{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--g1);color:var(--g5);}
+/* step tracker */
+.slist{display:flex;flex-direction:column;}
+.step{display:flex;gap:12px;}
+.sline{display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;}
+.sdot{width:14px;height:14px;border-radius:50%;}
+.s-done{background:var(--gm);}.s-act{background:var(--am);}.s-todo{background:var(--g1);border:2px solid var(--g3);}
+.scon{flex:1;width:2px;background:var(--g1);margin:2px 0;min-height:18px;}
+.scont{flex:1;padding-bottom:14px;}
+.slabel{font-size:13px;font-weight:600;}.ssub{font-size:11px;color:var(--g5);margin-top:2px;}
+.aitem{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--g1);}
+.aitem:last-child{border-bottom:none;}
+.adot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.atext{font-size:13px;color:var(--g7);line-height:1.4;}.atime{font-size:11px;color:var(--g3);margin-top:3px;}
+.mback{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:flex-end;justify-content:center;}
+.mback.open{display:flex;}
+.mbox{background:var(--w);border-radius:var(--rxl) var(--rxl) 0 0;padding:24px 20px;width:100%;max-width:480px;animation:slideUp 0.25s ease;max-height:90vh;overflow-y:auto;}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mt2{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:3px;}
+.ms2{font-size:13px;color:var(--g5);margin-bottom:18px;}
+.mact{display:flex;gap:10px;margin-top:14px;}.mact .btn{flex:1;}
+.toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:var(--g9);color:var(--w);padding:11px 20px;border-radius:30px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;max-width:88vw;text-align:center;}
+.toast.show{opacity:1;}
+.twrap{display:flex;align-items:center;gap:10px;}
+.toggle{width:42px;height:24px;border-radius:12px;background:var(--g3);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--gm);}
+.tknob{width:18px;height:18px;background:var(--w);border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle.on .tknob{left:21px;}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--g1);background:var(--w);color:var(--g5);cursor:pointer;white-space:nowrap;}
+.chip.active{background:var(--gd);color:var(--w);border-color:var(--gd);}
+.phero{background:var(--gd);border-radius:var(--rlg);padding:22px;margin-bottom:14px;text-align:center;}
+.pavatar{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:3px solid rgba(255,255,255,0.18);color:var(--w);}
+.pname{font-family:'DM Serif Display',serif;font-size:22px;color:var(--w);}.ploc{font-size:13px;color:rgba(255,255,255,0.55);margin-top:3px;}
+.mpill{display:inline-flex;align-items:center;gap:6px;margin-top:11px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);border-radius:20px;padding:5px 13px;font-size:12px;font-weight:600;}
+.smspre{background:var(--g9);border-radius:var(--rsm);padding:13px 15px;margin:10px 0;}
+.smsh{font-size:11px;color:var(--g3);margin-bottom:6px;}.smsb{font-size:13px;color:var(--w);line-height:1.5;font-family:monospace;}
+.erow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--g1);}
+.erow:last-child{border-bottom:none;}
+.elbl{font-size:13px;color:var(--g7);}.esub{font-size:11px;color:var(--g3);margin-top:2px;}.ev{font-size:14px;font-weight:700;color:var(--am);}
+.mcard{background:var(--w);border-radius:var(--rmd);padding:13px;margin-bottom:10px;box-shadow:var(--sh);display:flex;align-items:center;gap:12px;}
+.micon{width:44px;height:44px;background:var(--gl);border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.minfo{flex:1;}.mroute{font-size:14px;font-weight:600;}.mdetail{font-size:12px;color:var(--g5);margin-top:2px;}
+.mqty{font-size:15px;font-weight:700;color:var(--gm);}
+.ocard{background:var(--w);border-radius:var(--rmd);padding:14px;margin-bottom:10px;box-shadow:var(--sh);}
+.empty{text-align:center;padding:40px 20px;color:var(--g3);font-size:14px;line-height:1.6;}
+.greeting{font-size:13px;color:var(--g5);margin-bottom:2px;}
+.welcome{font-family:'DM Serif Display',serif;font-size:23px;color:var(--g9);margin-bottom:16px;}
+.tip{background:var(--gl);border:1px solid var(--gb);border-radius:var(--rsm);padding:11px 14px;margin-bottom:12px;}
+.tip-t{font-size:13px;font-weight:600;color:var(--gd);margin-bottom:3px;}.tip-b{font-size:13px;color:var(--g7);line-height:1.4;}
+.loading-inline{text-align:center;padding:30px;color:var(--g3);font-size:13px;}
+.pcopy{font-size:11px;color:var(--g3);text-align:center;padding:10px 16px 20px;}
+/* admin price editor */
+.pe-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g1);}
+.pe-row:last-child{border-bottom:none;}
+.pe-icon{font-size:22px;width:30px;text-align:center;flex-shrink:0;}
+.pe-name{flex:1;font-size:14px;font-weight:600;}
+.pe-inp{width:85px;padding:6px 10px;border:1.5px solid var(--g1);border-radius:var(--rsm);font-size:13px;font-weight:700;color:var(--gm);text-align:right;}
+.pe-inp:focus{outline:none;border-color:var(--gm);}
+.pe-del{background:none;border:none;color:var(--g3);font-size:16px;cursor:pointer;padding:4px;}
+.pe-del:hover{color:var(--rd);}
+/* region table */
+.reg-row{display:grid;grid-template-columns:1fr 60px 60px auto;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--g1);font-size:13px;}
+.reg-row:last-child{border-bottom:none;}
+.reg-name{font-weight:600;}.reg-val{text-align:right;color:var(--g5);font-size:12px;}
+@media(min-width:480px){#pg-app{box-shadow:0 0 40px rgba(0,0,0,0.1);}}
+
+/* CHAT */
+.chat-bubble{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding:4px 0;margin-bottom:12px;}
+.msg{display:flex;gap:8px;align-items:flex-end;}
+.msg.mine{flex-direction:row-reverse;}
+.msg-body{max-width:78%;background:var(--g1);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:13px;color:var(--g9);line-height:1.4;}
+.msg.mine .msg-body{background:var(--gm);color:var(--w);border-radius:12px 12px 2px 12px;}
+.msg-body.blocked{background:var(--rll);color:var(--rd);font-style:italic;font-size:12px;}
+.msg-time{font-size:10px;color:var(--g3);margin-top:2px;}
+.msg-av{width:26px;height:26px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.chat-input-row{display:flex;gap:8px;}
+.chat-inp{flex:1;padding:10px 13px;border:1.5px solid var(--g1);border-radius:var(--rsm);font-size:14px;color:var(--g9);background:var(--g0);outline:none;}
+.chat-inp:focus{border-color:var(--gm);}
+.chat-warn{background:var(--rll);border:1px solid var(--rd);color:var(--rd);border-radius:var(--rsm);padding:8px 12px;font-size:12px;margin-bottom:8px;display:none;}
+/* AQA badge */
+.aqa-badge{background:linear-gradient(135deg,var(--gl),var(--bll));border:1px solid var(--gb);border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;font-size:12px;}
+.aqa-badge-t{font-weight:700;color:var(--gd);margin-bottom:2px;}
+/* reserved qty */
+.qty-avail{color:var(--gm);font-weight:700;}
+.qty-res{color:var(--am);font-size:11px;}
+</style>
+</head>
+<body>
+
+<div class="page show" id="pg-load">
+  <div class="load-wrap">
+    <div class="load-icon">🌾</div>
+    <div class="load-t">AgriConnect</div>
+    <div class="load-s">by Hub-In Rwanda</div>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<div class="page" id="pg-land">
+  <div class="lang-row">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('rw')">RW</button>
+    <button class="lang-btn" onclick="setLang('sw')">SW</button>
+  </div>
+  <div class="land-logo">
+    <div class="land-icon">🌾</div>
+    <div><div class="land-name">AgriConnect</div><div class="land-by">by Hub-In Rwanda</div></div>
+  </div>
+  <div class="land-h" id="lh">From farm to market,<br>without the chaos.</div>
+  <div class="land-s" id="ls">Rwanda's digital agri supply chain. No price shocks. No empty trucks.</div>
+  <div class="rg">
+    <div class="rb" onclick="openAuth('farmer')"><div class="ri">🌱</div><div class="rn" id="lr-farmer">Farmer</div><div class="rd" id="lrd-farmer">Post & sell produce</div></div>
+    <div class="rb" onclick="openAuth('broker')"><div class="ri">🤝</div><div class="rn" id="lr-broker">Broker</div><div class="rd" id="lrd-broker">Browse & trade</div></div>
+    <div class="rb" onclick="openAuth('transporter')"><div class="ri">🚛</div><div class="rn" id="lr-transporter">Transporter</div><div class="rd" id="lrd-transporter">Find cargo jobs</div></div>
+    <div class="rb full" onclick="openAuth('govt')"><div class="ri">🏛️</div><div><div class="rn" id="lr-govt">Government</div><div class="rd" id="lrd-govt">Famine intelligence — restricted</div></div></div>
+  </div>
+  <div class="copy">© 2026 Hub-In Rwanda · AgriConnect MVP</div>
+</div>
+
+<div class="page" id="pg-auth">
+  <div class="aw">
+    <button class="ab-back" onclick="showPage('pg-land')">← <span id="back-lbl">Back</span></button>
+    <div class="ab">
+      <div class="art" id="auth-rtag">🌱 Farmer</div>
+      <div class="at" id="auth-title">Welcome back</div>
+      <div class="as" id="auth-sub">Sign in with your phone number</div>
+      <div class="err" id="auth-err"></div>
+      <div class="atabs" id="auth-tabs">
+        <button class="atab active" id="tab-in" onclick="switchTab('login')">Sign in</button>
+        <button class="atab" id="tab-reg" onclick="switchTab('register')">Register</button>
+      </div>
+      <!-- LOGIN FORM -->
+      <div id="form-login">
+        <div class="fg"><label class="fl" id="lbl-phone">Phone number</label>
+          <div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="l-phone" type="tel" placeholder="780 000 000" maxlength="9" inputmode="numeric"></div>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-pass">Password</label><input class="fi" id="l-pass" type="password" placeholder="••••••••"></div>
+        <button class="abtn abtn-g" id="login-btn" onclick="doLogin()">Sign in</button>
+      </div>
+      <!-- REGISTER FORM -->
+      <div id="form-reg" style="display:none;">
+        <div class="frow">
+          <div class="fg"><label class="fl" id="lbl-fname">First name</label><input class="fi" id="r-fname" type="text" placeholder="Muhire"></div>
+          <div class="fg"><label class="fl" id="lbl-lname">Last name</label><input class="fi" id="r-lname" type="text" placeholder="Jean"></div>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-rphone">Phone number</label>
+          <div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="r-phone" type="tel" placeholder="780 000 000" maxlength="9" inputmode="numeric"></div>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-loc">District / Location</label><input class="fi" id="r-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province"></div>
+        <div class="fg" id="vg" style="display:none;"><label class="fl">Vehicle (type & plate)</label><input class="fi" id="r-vehicle" type="text" placeholder="e.g. Isuzu NQR · RAC 483 B"></div>
+        <div class="fg" id="cg" style="display:none;"><label class="fl">Capacity (tonnes)</label><input class="fi" id="r-cap" type="number" placeholder="e.g. 5"></div>
+        <div class="fg"><label class="fl">MTN/Airtel MoMo</label>
+          <div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="r-momo" type="tel" placeholder="780 000 000" maxlength="9" inputmode="numeric"></div>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-pass2">Password (min 6 chars)</label><input class="fi" id="r-pass" type="password" placeholder="••••••••"></div>
+        <div class="fg"><label class="fl" id="lbl-conf">Confirm password</label><input class="fi" id="r-pass2" type="password" placeholder="••••••••"></div>
+        <button class="abtn abtn-g" id="reg-btn" onclick="doRegister()">Create account</button>
+      </div>
+      <!-- GOVT FORM -->
+      <div id="form-govt" style="display:none;">
+        <div class="fg"><label class="fl">Government ID</label><input class="fi" id="g-id" type="text" placeholder="Enter Gov ID"></div>
+        <div class="fg"><label class="fl">Access code</label><input class="fi" id="g-code" type="password" placeholder="••••••••"></div>
+        <div class="fg"><label class="fl">Your province</label>
+          <select class="fi" id="g-region">
+            <option value="all">All Rwanda (National)</option>
+            <option value="eastern">Eastern Province</option>
+            <option value="western">Western Province</option>
+            <option value="northern">Northern Province</option>
+            <option value="southern">Southern Province</option>
+            <option value="kigali">Kigali City</option>
+          </select>
+        </div>
+        <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--rd);margin-bottom:13px;">🔒 Credentials issued exclusively by Hub-In Rwanda. Contact admin@hub-in.rw</div>
+        <button class="abtn abtn-r" onclick="doGovtLogin()">Access portal</button>
+      </div>
+
+    </div>
+    <div class="copy" style="margin-top:20px;">© 2026 Hub-In Rwanda · AgriConnect</div>
+  </div>
+</div>
+
+<div class="page" id="pg-app">
+  <div class="topbar">
+    <div class="tbl">
+      <div class="tbav" id="tb-av">🌾</div>
+      <div><div class="tbn" id="tb-name">AgriConnect</div><div class="tbloc" id="tb-loc"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span class="tbrole" id="tb-role"></span>
+      <button class="tbout" onclick="doLogout()" title="Sign out">⏻</button>
+    </div>
+  </div>
+  <div id="screens"></div>
+  <div class="bnav" id="bnav"></div>
+  <div class="pcopy">© 2026 Hub-In Rwanda · AgriConnect MVP</div>
+</div>
+
+<div class="mback" id="modal" onclick="closeModal(event)"><div class="mbox" id="modal-content"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import{getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,updateDoc,deleteDoc,query,where,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getAnalytics,logEvent}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+
+const FC={apiKey:"AIzaSyDPmXpUzzz1kU9JnnbyoTW6f80cqV2Wauk",authDomain:"agriconnect-8d029.firebaseapp.com",projectId:"agriconnect-8d029",storageBucket:"agriconnect-8d029.firebasestorage.app",messagingSenderId:"215579651241",appId:"1:215579651241:web:ecd2a8be0a414cea910db8",measurementId:"G-D6L42KXF3T"};
+const fbApp=initializeApp(FC);
+const auth=getAuth(fbApp);
+const db=getFirestore(fbApp);
+const analytics=getAnalytics(fbApp);
+
+// ─── CREDENTIALS ───
+const GOVT_ID="HUBIN-GOV-2026",GOVT_CODE="AgriGov@2026";
+const ADMIN_USER="hubin-admin",ADMIN_PASS="AgriAdmin@2026";
+
+// ─── STATE ───
+let S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:'en',govtRegion:'all'};
+window._lc=[];
+
+// ─── PHONE <-> EMAIL ───
+function phoneToEmail(p){return cleanPhone(p)+'@agri.rw';}
+function cleanPhone(p){return p.replace(/\D/g,'').replace(/^250/,'').replace(/^0/,'');}
+
+// ─── i18n ───
+const LANGS={
+  en:{lh:'From farm to market,<br>without the chaos.',ls:"Rwanda's digital agri supply chain. No price shocks. No empty trucks.",
+    'lr-farmer':'Farmer','lrd-farmer':'Post & sell produce','lr-broker':'Broker','lrd-broker':'Browse & trade',
+    'lr-transporter':'Transporter','lrd-transporter':'Find cargo jobs','lr-govt':'Government','lrd-govt':'Famine intelligence — restricted',
+    'back-lbl':'Back','tab-in':'Sign in','tab-reg':'Register',
+    'lbl-phone':'Phone number','lbl-pass':'Password','lbl-fname':'First name','lbl-lname':'Last name',
+    'lbl-rphone':'Phone number','lbl-loc':'District / Location','lbl-pass2':'Password (min 6 chars)','lbl-conf':'Confirm password',
+    'login-btn':'Sign in','reg-btn':'Create account',
+    greeting:'Muraho',welcome:'My dashboard',home:'Home',market:'Market',post:'Post',offers:'Offers',
+    profile:'Profile',browse:'Browse',deals:'Deals',jobs:'Jobs',active:'Active',earnings:'Earnings',
+    overview:'Overview',users:'Users',surplus:'Surplus',sms:'SMS',prices:'Prices',crops:'Crops',
+  },
+  rw:{lh:'Ubuhinzi bwawe,<br>ku isoko ryoroshye.',ls:"Igikoresho cy'itumanaho mu buhinzi bw'u Rwanda.",
+    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Muhinga','lrd-broker':'Reba ugure',
+    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ubumenyi bw\'inzara',
+    'back-lbl':'Garuka','tab-in':'Injira','tab-reg':'Iyandikishe',
+    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina','lbl-lname':'Inkomoko',
+    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo',
+    'login-btn':'Injira','reg-btn':'Fungura konti',
+    greeting:'Muraho',welcome:'Imbaho yanjye',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ibirego',
+    profile:'Umwirondoro',browse:'Reba',deals:'Amasezerano',jobs:'Akazi',active:'Biragenda',earnings:'Inyungu',
+    overview:'Incamake',users:'Abakoresha',surplus:'Umuhamagaro',sms:'SMS',prices:'Ibiciro',crops:'Imbuto',
+  },
+  sw:{lh:'Kutoka shambani hadi sokoni,<br>bila msongo wa mawazo.',ls:"Mfumo wa ugavi wa kilimo wa Rwanda. Hakuna mshangao wa bei.",
+    'lr-farmer':'Mkulima','lrd-farmer':'Tangaza mazao','lr-broker':'Dalali','lrd-broker':'Tazama na biashara',
+    'lr-transporter':'Dereva','lrd-transporter':'Tafuta kazi ya usafiri','lr-govt':'Serikali','lrd-govt':'Akili za njaa',
+    'back-lbl':'Rudi','tab-in':'Ingia','tab-reg':'Jisajili',
+    'lbl-phone':'Nambari ya simu','lbl-pass':'Nywila','lbl-fname':'Jina la kwanza','lbl-lname':'Jina la familia',
+    'lbl-rphone':'Nambari ya simu','lbl-loc':'Wilaya / Mahali ulipo','lbl-pass2':'Nywila','lbl-conf':'Thibitisha',
+    'login-btn':'Ingia','reg-btn':'Fungua akaunti',
+    greeting:'Habari',welcome:'Dashibodi yangu',home:'Nyumbani',market:'Soko',post:'Chapisha',offers:'Mapendekezo',
+    profile:'Wasifu',browse:'Vinjari',deals:'Mikataba',jobs:'Kazi',active:'Inaendelea',earnings:'Mapato',
+    overview:'Muhtasari',users:'Watumiaji',surplus:'Ziada',sms:'SMS',prices:'Bei',crops:'Mazao',
+  }
+};
+
+window.setLang=function(lang){
+  S.lang=lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>{
+    b.classList.toggle('active',b.textContent.toLowerCase()===lang);
+  });
+  const tr=LANGS[lang]||LANGS.en;
+  Object.keys(tr).forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=tr[k];});
+};
+function t(k){return(LANGS[S.lang]||LANGS.en)[k]||k;}
+
+// ─── DEFAULT CROPS ───
+let CROPS=[
+  {name:'Maize',icon:'🌽',type:'maize',price:290,change:5},
+  {name:'Irish Potatoes',icon:'🥔',type:'potatoes',price:175,change:-3},
+  {name:'Beans',icon:'🫘',type:'beans',price:660,change:2},
+  {name:'Cassava',icon:'🥬',type:'cassava',price:120,change:1},
+  {name:'Sorghum',icon:'🌾',type:'sorghum',price:310,change:-1},
+  {name:'Tomatoes',icon:'🍅',type:'tomatoes',price:400,change:8},
+  {name:'Rice',icon:'🍚',type:'rice',price:520,change:3},
+  {name:'Banana',icon:'🍌',type:'banana',price:90,change:0},
+  {name:'Wheat',icon:'🌾',type:'wheat',price:280,change:-2},
+];
+
+
+// ─── CLIENT-SIDE SORT (replaces orderBy — no indexes needed) ───
+function byDate(arr){
+  return arr.sort((a,b)=>{
+    const ta=a.createdAt?.toMillis?a.createdAt.toMillis():a.createdAt?.seconds?a.createdAt.seconds*1000:0;
+    const tb=b.createdAt?.toMillis?b.createdAt.toMillis():b.createdAt?.seconds?b.createdAt.seconds*1000:0;
+    return tb-ta;
+  });
+}
+async function loadCrops(){
+  try{const snap=await getDocs(collection(db,'crops'));if(!snap.empty)CROPS=snap.docs.map(d=>({id:d.id,...d.data()}));}
+  catch(e){console.log('Using default crops');}
+}
+
+// ─── RWANDA PROVINCE MAP ───
+const PROV_DISTRICTS={
+  eastern:['nyagatare','kayonza','rwamagana','bugesera','kirehe','ngoma','gatsibo'],
+  western:['rubavu','rusizi','karongi','nyamasheke','rutsiro','ngororero'],
+  northern:['musanze','rulindo','gakenke','gicumbi','burera'],
+  southern:['huye','ruhango','nyanza','muhanga','gisagara','kamonyi','nyaruguru','nyamagabe'],
+  kigali:['gasabo','kicukiro','nyarugenge','kigali'],
+};
+// Province GPS centres for NASA POWER API
+const PROV_COORDS={
+  eastern:{lat:-1.5,lon:30.5},western:{lat:-2.2,lon:29.3},
+  northern:{lat:-1.4,lon:29.7},southern:{lat:-2.5,lon:29.8},kigali:{lat:-1.95,lon:30.06},
+};
+
+function getProvince(loc){
+  if(!loc)return'other';const l=loc.toLowerCase();
+  for(const[p,ds]of Object.entries(PROV_DISTRICTS)){if(ds.some(d=>l.includes(d)))return p;}
+  return'other';
+}
+
+// ─── NASA POWER API ───
+async function fetchNASARainfall(lat,lon){
+  try{
+    const end=new Date(),start=new Date();start.setDate(start.getDate()-90);
+    const fmt=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    const url=`https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=PRECTOTCORR,T2M&community=AG&longitude=${lon}&latitude=${lat}&start=${fmt(start).slice(0,6)}&end=${fmt(end).slice(0,6)}&format=JSON`;
+    const res=await fetch(url);const data=await res.json();
+    const prec=data?.properties?.parameter?.PRECTOTCORR;
+    if(!prec)return null;
+    const vals=Object.values(prec).filter(v=>v>-900);
+    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+    const recent=vals.slice(-3);const recentAvg=recent.reduce((a,b)=>a+b,0)/recent.length;
+    const deficit=Math.max(0,avg-recentAvg)/avg;
+    return{avg,recentAvg,deficit,score:Math.round(deficit*100)};
+  }catch(e){return null;}
+}
+
+// ─── FAO YIELD BASELINES (kg/ha, Rwanda historical averages) ───
+const FAO_BASELINE={
+  eastern:{maize:1800,beans:900,cassava:8500,sorghum:1100,potatoes:7000},
+  western:{maize:1600,beans:1100,cassava:7500,sorghum:900,potatoes:9000},
+  northern:{maize:1700,beans:1000,cassava:7000,sorghum:850,potatoes:11000},
+  southern:{maize:1500,beans:950,cassava:8000,sorghum:1000,potatoes:8500},
+  kigali:{maize:1200,beans:700,cassava:5000,sorghum:500,potatoes:5000},
+};
+
+// ─── WFP VULNERABILITY SCORES (0-100, higher = more vulnerable) ───
+const WFP_VULN={eastern:52,western:61,northern:48,southern:58,kigali:32};
+
+// ─── FAMINE SCORE ENGINE ───
+async function calcFamineScore(province,platformListings){
+  const coords=PROV_COORDS[province];
+  let rainfallScore=50,yieldScore=50,supplyScore=50,vulnScore=WFP_VULN[province]||50;
+
+  // NASA rainfall
+  if(coords){
+    const nasa=await fetchNASARainfall(coords.lat,coords.lon);
+    if(nasa)rainfallScore=Math.min(100,Math.round(nasa.deficit*100));
+  }
+
+  // Supply score from platform listings
+  const provListings=platformListings.filter(l=>getProvince(l.loc||'')===province);
+  const totalKg=provListings.reduce((s,l)=>s+(l.qty||0),0);
+  // Low supply = high risk (scale: 0kg=100 risk, 100000kg=0 risk)
+  supplyScore=Math.max(0,100-Math.round(totalKg/1000));
+
+  // FAO yield gap: compare listing prices to FAO baseline
+  const baseline=FAO_BASELINE[province]||FAO_BASELINE.eastern;
+  const baselineAvgYield=Object.values(baseline).reduce((a,b)=>a+b,0)/Object.keys(baseline).length;
+  // If listings are scarce vs baseline, yield gap is high
+  const expectedKg=baselineAvgYield*10; // rough area estimate
+  const yieldGap=Math.max(0,expectedKg-totalKg)/expectedKg;
+  yieldScore=Math.round(yieldGap*100);
+
+  // Weighted final score
+  const final=Math.round(rainfallScore*0.30+yieldScore*0.25+supplyScore*0.25+vulnScore*0.20);
+  return{
+    score:Math.min(100,final),rainfallScore,yieldScore,supplyScore,vulnScore,
+    listingCount:provListings.length,totalKg,
+  };
+}
+
+function riskLabel(score){
+  if(score>=70)return{cls:'risk-c',label:'Critical',fill:'rc'};
+  if(score>=50)return{cls:'risk-h',label:'High',fill:'rh'};
+  if(score>=30)return{cls:'risk-m',label:'Moderate',fill:'rm'};
+  return{cls:'risk-l',label:'Low',fill:'rl4'};
+}
+
+// ─── AUTH STATE ───
+// Landing shows immediately — auth listener silently upgrades to app if session exists
+onAuthStateChanged(auth,async user=>{
+  if(user&&document.getElementById('pg-app').classList.contains('show'))return; // already in app
+  if(user){
+    try{
+      const snap=await getDoc(doc(db,'users',user.uid));
+      if(snap.exists()){
+        S.user=user;S.profile=snap.data();S.role=S.profile.role;
+        await loadCrops();enterApp();return;
+      }
+    }catch(e){console.error('Auth restore failed:',e);}
+  }
+  // no session or no profile — stay on landing (already shown)
+});
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+  window.scrollTo(0,0);
+}
+window.showPage=showPage;
+
+// ─── OPEN AUTH ───
+window.openAuth=function(role){
+  S.authRole=role;
+  const tags={farmer:'🌱 Farmer',broker:'🤝 Broker',transporter:'🚛 Transporter',govt:'🏛️ Government'};
+  document.getElementById('auth-rtag').textContent=tags[role]||role;
+  document.getElementById('auth-err').style.display='none';
+  ['form-login','form-reg','form-govt'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  const special=role==='govt';
+  document.getElementById('auth-tabs').style.display=special?'none':'flex';
+  if(role==='govt')document.getElementById('form-govt').style.display='block';
+  else document.getElementById('form-login').style.display='block';
+  document.getElementById('vg').style.display=role==='transporter'?'block':'none';
+  document.getElementById('cg').style.display=role==='transporter'?'block':'none';
+  showPage('pg-auth');
+};
+
+window.switchTab=function(tab){
+  document.getElementById('tab-in').classList.toggle('active',tab==='login');
+  document.getElementById('tab-reg').classList.toggle('active',tab==='register');
+  document.getElementById('form-login').style.display=tab==='login'?'block':'none';
+  document.getElementById('form-reg').style.display=tab==='register'?'block':'none';
+  document.getElementById('auth-err').style.display='none';
+};
+
+function showErr(m){const e=document.getElementById('auth-err');e.textContent=m;e.style.display='block';}
+function setBtnLoad(id,on,txt){const b=document.getElementById(id);if(b){b.disabled=on;b.textContent=on?'Please wait...':txt;}}
+
+// ─── REGISTER (phone-based) ───
+window.doRegister=async function(){
+  const fname=document.getElementById('r-fname').value.trim();
+  const lname=document.getElementById('r-lname').value.trim();
+  const rawPhone=cleanPhone(document.getElementById('r-phone').value);
+  const loc=document.getElementById('r-loc').value.trim();
+  const rawMomo=cleanPhone(document.getElementById('r-momo').value)||rawPhone;
+  const pass=document.getElementById('r-pass').value;
+  const pass2=document.getElementById('r-pass2').value;
+  const vehicle=document.getElementById('r-vehicle').value.trim();
+  const capacity=parseFloat(document.getElementById('r-cap').value)||null;
+  if(!fname||!rawPhone||!loc||!pass){showErr('Please fill in all required fields.');return;}
+  if(rawPhone.length<9){showErr('Enter a valid 9-digit phone number, e.g. 780 000 000');return;}
+  if(pass!==pass2){showErr('Passwords do not match.');return;}
+  if(pass.length<6){showErr('Password must be at least 6 characters.');return;}
+  setBtnLoad('reg-btn',true,'Create account');
+  try{
+    const email=phoneToEmail(rawPhone);
+    const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    const profile={uid:cred.user.uid,role:S.authRole,fname,lname,email,
+      phone:'+250'+rawPhone,momo:'+250'+rawMomo,loc,
+      province:getProvince(loc),vehicle:vehicle||null,capacity,
+      rating:5.0,reviews:0,joined:new Date().toISOString(),createdAt:serverTimestamp()};
+    await setDoc(doc(db,'users',cred.user.uid),profile);
+    S.user=cred.user;S.profile=profile;S.role=S.authRole;
+    logEvent(analytics,'sign_up',{role:S.authRole});
+    await loadCrops();enterApp();
+  }catch(e){
+    const msg=e.code==='auth/email-already-in-use'?'This phone number is already registered.':e.message;
+    showErr(msg);setBtnLoad('reg-btn',false,'Create account');
+  }
+};
+
+// ─── LOGIN (phone-based) — FIX: no role mismatch bug ───
+window.doLogin=async function(){
+  const rawPhone=cleanPhone(document.getElementById('l-phone').value);
+  const pass=document.getElementById('l-pass').value;
+  if(!rawPhone||!pass){showErr('Please enter your phone number and password.');return;}
+  if(rawPhone.length<9){showErr('Enter a valid 9-digit phone number.');return;}
+  setBtnLoad('login-btn',true,'Sign in');
+  try{
+    const email=phoneToEmail(rawPhone);
+    const cred=await signInWithEmailAndPassword(auth,email,pass);
+    const snap=await getDoc(doc(db,'users',cred.user.uid));
+    if(!snap.exists()){
+      showErr('Account not found. Please register.');
+      await signOut(auth);setBtnLoad('login-btn',false,'Sign in');return;
+    }
+    const profile=snap.data();
+    // FIX: role check — if wrong portal, still let them in with correct role
+    S.user=cred.user;S.profile=profile;S.role=profile.role;
+    logEvent(analytics,'login',{role:profile.role});
+    await loadCrops();enterApp();
+  }catch(e){
+    const msg=e.code==='auth/invalid-credential'?'Incorrect phone number or password.':e.message;
+    showErr(msg);setBtnLoad('login-btn',false,'Sign in');
+  }
+};
+
+window.doGovtLogin=function(){
+  const id=document.getElementById('g-id').value.trim();
+  const code=document.getElementById('g-code').value;
+  const region=document.getElementById('g-region').value;
+  if(id===GOVT_ID&&code===GOVT_CODE){
+    S.role='govt';S.govtRegion=region;
+    S.profile={fname:'Gov',lname:region==='all'?'Rwanda':region.charAt(0).toUpperCase()+region.slice(1),role:'govt',loc:'Kigali, Rwanda'};
+    logEvent(analytics,'govt_login',{region});
+    enterApp();
+  }else{showErr('Invalid credentials. Contact admin@hub-in.rw');}
+};
+
+    enterApp();
+  }else{showErr('Invalid admin credentials.');}
+};
+
+window.doLogout=async function(){
+  if(S.user)await signOut(auth);
+  S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:S.lang,govtRegion:'all'};
+  showPage('pg-land');
+};
+
+// ─── ENTER APP ───
+function enterApp(){
+  const p=S.profile;
+  const conf={
+    farmer:{av:'👨‍🌾',role:'Farmer',cls:'farmer',nav:[
+      {id:'home',i:'🏠',k:'home'},{id:'market',i:'📊',k:'market'},{id:'post',i:'➕',k:'post'},
+      {id:'offers',i:'📬',k:'offers'},{id:'chat',i:'💬',k:'chat'},{id:'profile',i:'👤',k:'profile'}]},
+    broker:{av:'🤝',role:'Broker',cls:'broker',nav:[
+      {id:'home',i:'🏠',k:'home'},{id:'browse',i:'🔍',k:'browse'},
+      {id:'deals',i:'📋',k:'deals'},{id:'chat',i:'💬',k:'chat'},{id:'profile',i:'👤',k:'profile'}]},
+    transporter:{av:'🚛',role:'Transporter',cls:'transporter',nav:[
+      {id:'home',i:'🏠',k:'home'},{id:'jobs',i:'📦',k:'jobs'},
+      {id:'active',i:'📍',k:'active'},{id:'earnings',i:'💰',k:'earnings'},{id:'profile',i:'👤',k:'profile'}]},
+    govt:{av:'🏛️',role:'Gov Portal',cls:'govt',nav:[
+      {id:'home',i:'🗺️',k:'overview'},{id:'famine',i:'📡',k:'surplus'},{id:'sms',i:'📱',k:'sms'}]},
+  }[S.role];
+  document.getElementById('pg-app').className='page show '+conf.cls;
+  document.getElementById('tb-av').textContent=conf.av;
+  document.getElementById('tb-name').textContent=p.fname+(p.lname?' '+p.lname:'');
+  document.getElementById('tb-loc').textContent=p.loc||'';
+  document.getElementById('tb-role').textContent=conf.role;
+  document.getElementById('bnav').innerHTML=conf.nav.map(n=>
+    `<button class="bn" id="bn-${n.id}" onclick="showScr('${n.id}')"><span class="ni">${n.i}</span><span class="nl">${t(n.k)||n.k}</span></button>`
+  ).join('');
+  showPage('pg-app');showScr(conf.nav[0].id);
+}
+
+// ─── SCREEN ROUTER ───
+window.showScr=function(id){
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('active'));
+  const bn=document.getElementById('bn-'+id);if(bn)bn.classList.add('active');
+  const screens={
+    home:scrHome,market:scrMarket,post:scrPost,offers:scrOffers,profile:scrProfile,
+    browse:scrBrowse,deals:scrDeals,
+    jobs:scrJobs,active:scrActive,earnings:scrEarnings,chat:scrChat,
+    famine:scrFamine,sms:scrSMS,
+  };
+  const fn=screens[id];
+  if(fn)document.getElementById('screens').innerHTML=`<div class="scr show">${fn()}</div>`;
+  const loaders={
+    home:loadHome,browse:loadListings,offers:loadOffers,deals:loadDeals,
+    jobs:loadJobs,active:loadActiveJob,earnings:loadEarnings,chat:loadChatList,
+    famine:loadFamine,sms:loadSMSStats,
+  };
+  if(loaders[id])loaders[id]();
+};
+
+// ═══════════════════════════════════════════════════
+// FARMER SCREENS
+// ═══════════════════════════════════════════════════
+function scrHome(){
+  if(S.role==='broker')return scrBrokerHome();
+  if(S.role==='transporter')return scrTransHome();
+  if(S.role==='govt')return scrGovtHome();
+  return`<p class="greeting">${t('greeting')}, ${S.profile.fname} 👋</p>
+  <p class="welcome">${t('welcome')}</p>
+  <div class="sg">
+    <div class="sb"><div class="sl">My listings</div><div class="sv" id="f-l">—</div><div class="ss" style="color:var(--gm)" id="f-oc">—</div></div>
+    <div class="sb"><div class="sl">Total earned</div><div class="sv" id="f-e">—</div><div class="ss" style="color:var(--gm)">RWF</div></div>
+    <div class="sb"><div class="sl">Pending offers</div><div class="sv" style="color:var(--am)" id="f-p">—</div><div class="ss" style="color:var(--am)" id="f-ps">—</div></div>
+    <div class="sb"><div class="sl">Rating</div><div class="sv">${S.profile.rating?.toFixed(1)||'5.0'}★</div><div class="ss" style="color:var(--gm)">${S.profile.reviews||0} reviews</div></div>
+  </div>
+  <div class="sh2"><span class="st">My produce</span><span class="sc2" id="f-lc"></span></div>
+  <div id="farmer-listings"><div class="loading-inline">Loading...</div></div>
+  <button class="btn btn-og btn-full" style="margin-top:4px;" onclick="showScr('post')">+ Post new produce</button>`;
+}
+
+function scrMarket(){
+  return`<div class="sh2"><span class="st">Live prices</span></div>
+  <div class="card"><div class="ct">Kigali markets — today</div>
+    ${CROPS.map(c=>`<div class="trow"><span class="tc">${c.icon} ${c.name}</span><span class="tpr">${c.price} RWF/kg</span><span class="tch ${(c.change||0)>0?'up':'dn'}">${(c.change||0)>0?'+':''}${c.change||0}%</span></div>`).join('')}
+  </div>
+  <div class="tip"><div class="tip-t">💡 Tip</div><div class="tip-b">Brokers typically offer 5–10% below market. Know your floor before accepting any offer!</div></div>
+  <div class="card"><div class="ct">SMS price alerts</div>
+    <p style="font-size:13px;color:var(--g5);margin-bottom:12px;">Get price updates even without internet — works on any basic phone.</p>
+    <button class="btn btn-g btn-full" onclick="toast('✅ SMS price alerts activated!')">Activate SMS alerts</button>
+  </div>`;}
+
+function scrPost(){
+  setTimeout(()=>updatePriceTip(),80);
+  return`<div class="sh2"><span class="st">Post produce</span></div>
+  <div class="card">
+    <div class="fg"><label class="fl">Crop type</label>
+      <select class="fi" id="p-crop" onchange="updatePriceTip()">
+        ${CROPS.map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="tip" id="price-tip"><div class="tip-t">📊 Market price</div><div class="tip-b" id="tip-body">Loading...</div></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Quantity (kg)</label><input class="fi" id="p-qty" type="number" placeholder="e.g. 1000" min="1" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">Price (RWF/kg)</label><input class="fi" id="p-price" type="number" placeholder="e.g. 280" min="1" inputmode="numeric"></div>
+    </div>
+    <div class="fg"><label class="fl">Location</label><input class="fi" id="p-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province" value="${S.profile.loc||''}"></div>
+    <div class="fg"><label class="fl">Ready from</label><input class="fi" id="p-date" type="date"></div>
+    <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" id="p-notes" type="text" placeholder="e.g. freshly harvested, dry stored"></div>
+    <div class="twrap" style="margin-bottom:14px;"><div class="toggle on"><div class="tknob"></div></div><span style="font-size:13px;color:var(--g7);">SMS notification when offers arrive</span></div>
+    <button class="btn btn-g btn-full" id="post-btn" onclick="submitListing()">Post listing</button>
+  </div>`;}
+
+window.updatePriceTip=function(){
+  const crop=CROPS.find(c=>c.name===document.getElementById('p-crop')?.value);
+  const el=document.getElementById('tip-body');
+  if(el&&crop)el.textContent=`${crop.name} is ${crop.price} RWF/kg in Kigali today. Brokers offer ~${Math.round(crop.price*0.93)}–${Math.round(crop.price*0.97)} RWF/kg.`;
+};
+
+window.submitListing=async function(){
+  const cropName=document.getElementById('p-crop').value;
+  const crop=CROPS.find(c=>c.name===cropName)||{icon:'🌾',type:'other'};
+  const qty=parseFloat(document.getElementById('p-qty').value);
+  const price=parseFloat(document.getElementById('p-price').value);
+  const loc=document.getElementById('p-loc').value.trim();
+  const date=document.getElementById('p-date').value;
+  const notes=document.getElementById('p-notes').value.trim();
+  if(!cropName||!qty||!price||!loc){toast('❌ Please fill in all required fields.');return;}
+  const btn=document.getElementById('post-btn');btn.disabled=true;btn.textContent='Posting...';
+  try{
+    await addDoc(collection(db,'listings'),{
+      userId:S.user.uid,farmerName:S.profile.fname+' '+(S.profile.lname||''),
+      farmerPhone:S.profile.phone,farmerRating:S.profile.rating||5.0,
+      crop:cropName,icon:crop.icon||'🌾',type:crop.type||'other',
+      qty,price,loc,province:getProvince(loc),date,notes,status:'available',createdAt:serverTimestamp()
+    });
+    logEvent(analytics,'listing_posted',{crop:cropName,qty,price});
+    toast('✅ Listing posted! Brokers notified.');showScr('home');
+  }catch(e){toast('❌ Error: '+e.message);btn.disabled=false;btn.textContent='Post listing';}
+};
+
+function scrOffers(){return`<div class="sh2"><span class="st">Offers</span></div><div id="offers-list"><div class="loading-inline">Loading offers...</div></div>`;}
+
+async function loadOffers(){
+  const cont=document.getElementById('offers-list');if(!cont)return;
+  try{
+    const q=query(collection(db,'offers'),where('farmerId','==',S.user.uid));
+    const snap=await getDocs(q);const offers=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
+    const pending=offers.filter(o=>o.status==='pending'),history=offers.filter(o=>o.status!=='pending');
+    let html='';
+    if(pending.length===0)html+=`<div class="empty">No pending offers.<br>Post produce to start receiving offers!</div>`;
+    pending.forEach(o=>{
+      const total=o.price*o.qty,comm=Math.round(total*0.03);
+      html+=`<div class="ocard">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div><div style="font-size:14px;font-weight:600;">${o.brokerName}</div><div style="font-size:12px;color:var(--g5);">${o.brokerLoc||'Kigali'} · ${ts(o.createdAt)}</div></div>
+          <span class="badge ba">New offer</span>
+        </div>
+        <div style="font-size:13px;color:var(--g5);margin-bottom:6px;">Wants <strong>${o.qty.toLocaleString()} kg</strong> of ${o.cropName||'produce'} · ${o.pickup||''}</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:2px;">${o.price} RWF/kg · <span style="color:var(--gm)">${total.toLocaleString()} RWF</span></div>
+        <div style="font-size:11px;color:var(--g3);margin-bottom:12px;">Commission (3%): ${comm.toLocaleString()} RWF deducted on confirmation</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-g btn-sm" style="flex:1;" onclick="acceptOffer('${o.id}')">Accept & confirm</button>
+          <button class="btn btn-og btn-sm" style="flex:1;" onclick="declineOffer('${o.id}')">Decline</button>
+        </div></div>`;
+    });
+    if(history.length>0){
+      html+=`<div class="sh2" style="margin-top:16px;"><span class="st">History</span></div>`;
+      history.slice(0,5).forEach(o=>{html+=`<div class="card" style="opacity:0.7;"><div style="display:flex;justify-content:space-between;"><div style="font-size:13px;font-weight:600;">${o.brokerName} — ${o.qty?.toLocaleString()} kg</div><span class="badge ${o.status==='accepted'?'bg':'bgr'}">${o.status}</span></div><div style="font-size:12px;color:var(--g5);margin-top:4px;">${o.price} RWF/kg · ${(o.price*o.qty).toLocaleString()} RWF · ${ts(o.createdAt)}</div></div>`;});
+    }
+    cont.innerHTML=html;
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading offers.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('offers:',e);}
+}
+
+window.acceptOffer=async function(oid){
+  try{
+    const oSnap=await getDoc(doc(db,'offers',oid));if(!oSnap.exists())return;
+    const o=oSnap.data();
+    await updateDoc(doc(db,'offers',oid),{status:'accepted',acceptedAt:serverTimestamp()});
+    const lSnap=await getDoc(doc(db,'listings',o.listingId));const l=lSnap.exists()?lSnap.data():{};
+    await addDoc(collection(db,'transactions'),{farmerId:S.user.uid,brokerId:o.brokerId,offerId:oid,listingId:o.listingId,amount:o.price*o.qty,commission:Math.round(o.price*o.qty*0.03),status:'confirmed',createdAt:serverTimestamp()});
+    await addDoc(collection(db,'jobs'),{offerId:oid,farmerId:S.user.uid,brokerId:o.brokerId,farmerName:S.profile.fname+' '+(S.profile.lname||''),brokerName:o.brokerName,from:l.loc||S.profile.loc||'Farm',to:o.deliveryLoc||'Kigali',cargo:`${l.crop||o.cropName} · ${o.qty?.toLocaleString()} kg`,qty:o.qty,crop:l.crop||o.cropName,pickup:o.pickup||'TBD',pay:Math.round((o.qty||0)*30),status:'open',createdAt:serverTimestamp()});
+    logEvent(analytics,'offer_accepted',{amount:o.price*o.qty});
+    toast('✅ Offer accepted! Transport job created.');loadOffers();
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+window.declineOffer=async function(oid){
+  const odSnap=await getDoc(doc(db,'offers',oid));
+  if(odSnap.exists()){const od=odSnap.data();try{const ldSnap=await getDoc(doc(db,'listings',od.listingId));if(ldSnap.exists()){const cur=ldSnap.data().reserved||0;await updateDoc(doc(db,'listings',od.listingId),{reserved:Math.max(0,cur-od.qty)});}}catch(e){}}
+  await updateDoc(doc(db,'offers',oid),{status:'declined'});
+  logEvent(analytics,'offer_declined');toast('Offer declined.');loadOffers();
+};
+
+// ═══════════════════════════════════════════════════
+// BROKER SCREENS
+// ═══════════════════════════════════════════════════
+function scrBrokerHome(){
+  return`<p class="greeting">Good morning 👋</p><p class="welcome">Broker dashboard</p>
+  <div class="sg">
+    <div class="sb"><div class="sl">Available listings</div><div class="sv" id="b-l">—</div><div class="ss" style="color:var(--bl)">browse now</div></div>
+    <div class="sb"><div class="sl">Open offers</div><div class="sv" id="b-o">—</div><div class="ss" style="color:var(--am)">pending</div></div>
+    <div class="sb"><div class="sl">Deals confirmed</div><div class="sv" id="b-c">—</div><div class="ss" style="color:var(--gm)">accepted</div></div>
+    <div class="sb"><div class="sl">Total traded</div><div class="sv" id="b-t">—</div><div class="ss">RWF</div></div>
+  </div>
+  <div class="sh2"><span class="st">Latest listings</span></div>
+  <div id="bhome-list"><div class="loading-inline">Loading...</div></div>
+  <button class="btn btn-ob btn-full" onclick="showScr('browse')">Browse all listings →</button>`;}
+
+async function loadBrokerHome(){
+  try{
+    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    const listings=byDate(lSnap.docs.map(d=>({id:d.id,...d.data()})));window._lc=listings;
+    const oSnap=await getDocs(query(collection(db,'offers'),where('brokerId','==',S.user.uid)));
+    const offers=oSnap.docs.map(d=>d.data());
+    const pending=offers.filter(o=>o.status==='pending'),accepted=offers.filter(o=>o.status==='accepted');
+    const traded=accepted.reduce((s,o)=>s+o.price*o.qty,0);
+    const el=id=>document.getElementById(id);
+    if(el('b-l'))el('b-l').textContent=listings.length;
+    if(el('b-o'))el('b-o').textContent=pending.length;
+    if(el('b-c'))el('b-c').textContent=accepted.length;
+    if(el('b-t'))el('b-t').textContent=traded>0?Math.round(traded/1000)+'k':'0';
+    const cont=el('bhome-list');
+    if(cont)cont.innerHTML=listings.length===0?`<div class="empty">No listings yet. Farmers are joining!</div>`:listings.slice(0,3).map(l=>lcard(l,'broker')).join('');
+  }catch(e){console.error(e);}
+}
+
+function scrBrowse(){
+  return`<div class="sh2"><span class="st">Browse</span><span class="sc2" id="browse-cnt">loading...</span></div>
+  <div class="chips" id="crop-chips">
+    ${['All',...CROPS.map(c=>c.name)].map(c=>`<button class="chip ${S.cropFilter===c?'active':''}" onclick="setCropFilter('${c}')">${c}</button>`).join('')}
+  </div>
+  <div id="browse-list"><div class="loading-inline">Loading listings...</div></div>`;}
+
+async function loadListings(){
+  const cont=document.getElementById('browse-list'),cnt=document.getElementById('browse-cnt');if(!cont)return;
+  try{
+    const snap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    let listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));window._lc=listings;
+    if(S.cropFilter!=='All')listings=listings.filter(l=>l.crop===S.cropFilter);
+    if(cnt)cnt.textContent=listings.length+' listings';
+    cont.innerHTML=listings.length===0?`<div class="empty">No listings${S.cropFilter!=='All'?' for '+S.cropFilter:''} right now.</div>`:listings.map(l=>lcard(l,'broker')).join('');
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading listings.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('listings:',e);}
+}
+
+window.setCropFilter=function(f){S.cropFilter=f;showScr('browse');};
+
+function scrDeals(){return`<div class="sh2"><span class="st">My deals</span></div><div id="deals-list"><div class="loading-inline">Loading...</div></div>`;}
+
+async function loadDeals(){
+  const cont=document.getElementById('deals-list');if(!cont)return;
+  try{
+    const snap=await getDocs(query(collection(db,'offers'),where('brokerId','==',S.user.uid)));
+    const offers=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
+    if(offers.length===0){cont.innerHTML=`<div class="empty">No deals yet.<br>Browse listings and make your first offer!</div>`;return;}
+    cont.innerHTML=offers.map(o=>`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:600;">${o.farmerName||'Farmer'} · ${o.cropName||'Produce'}</div><div style="font-size:12px;color:var(--g5);">${o.deliveryLoc||'Kigali'}</div></div><span class="badge ${o.status==='accepted'?'bg':o.status==='pending'?'ba':'bgr'}">${o.status}</span></div><div style="font-size:13px;color:var(--g5);margin-bottom:6px;">${o.qty?.toLocaleString()} kg · ${o.price} RWF/kg</div><div style="font-size:16px;font-weight:700;color:var(--gm);">${(o.price*o.qty).toLocaleString()} RWF</div><div style="font-size:11px;color:var(--g3);margin-top:4px;">${ts(o.createdAt)}</div></div>`).join('');
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading deals.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('deals:',e);}
+}
+
+window.openOfferModal=function(lid){
+  const l=(window._lc||[]).find(x=>x.id===lid);
+  const mp=CROPS.find(c=>c.name===l?.crop);
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">Make an offer</div>
+    <div class="ms2">${l?.crop||'Produce'} · Listed at ${l?.price||'?'} RWF/kg · ${l?.qty?.toLocaleString()||'?'} kg · ${l?.loc||''}${mp?` · Market: ${mp.price} RWF/kg`:''}</div>
+    <div class="fg"><label class="fl">Your offer price (RWF/kg)</label><input class="fi" id="mo-p" type="number" value="${Math.round((l?.price||280)*0.95)}" oninput="calcOfferTotal()" inputmode="numeric"></div>
+    <div class="fg"><label class="fl">Quantity you want (kg)</label><input class="fi" id="mo-q" type="number" value="${Math.floor((l?.qty||1000)*0.75)}" oninput="calcOfferTotal()" inputmode="numeric"></div>
+    <div class="fg"><label class="fl">Delivery location</label><input class="fi" id="mo-dl" placeholder="e.g. Kimironko market, Kigali"></div>
+    <div class="fg"><label class="fl">Pickup arrangement</label><select class="fi" id="mo-pk"><option>I arrange transport</option><option>Farmer delivers to Kigali</option><option>Split arrangement</option></select></div>
+    <div id="offer-total" style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--g5);margin-bottom:4px;"></div>
+    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-b" id="offer-sub" onclick="submitOffer('${lid}','${l?.userId||''}','${l?.crop||''}','${l?.farmerName||''}')">Send offer</button></div>`;
+  document.getElementById('modal').classList.add('open');calcOfferTotal();
+};
+
+window.calcOfferTotal=function(){
+  const p=parseFloat(document.getElementById('mo-p')?.value)||0,q=parseFloat(document.getElementById('mo-q')?.value)||0;
+  const el=document.getElementById('offer-total');
+  if(el)el.innerHTML=`Total: <strong>${(p*q).toLocaleString()} RWF</strong> &nbsp;·&nbsp; Commission (3%): <strong>${Math.round(p*q*0.03).toLocaleString()} RWF</strong>`;
+};
+
+window.submitOffer=async function(lid,farmerId,cropName,farmerName){
+  const price=parseFloat(document.getElementById('mo-p').value),qty=parseFloat(document.getElementById('mo-q').value);
+  const dloc=document.getElementById('mo-dl').value.trim(),pickup=document.getElementById('mo-pk').value;
+  if(!price||!qty){toast('Please fill in price and quantity.');return;}
+  const btn=document.getElementById('offer-sub');btn.disabled=true;btn.textContent='Sending...';
+  try{
+    await addDoc(collection(db,'offers'),{listingId:lid,brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),brokerLoc:S.profile.loc||'Kigali',farmerId,farmerName,cropName,price,qty,deliveryLoc:dloc,pickup,status:'pending',createdAt:serverTimestamp()});
+    // Reserve quantity on listing
+    try{const lSnap2=await getDoc(doc(db,'listings',lid));if(lSnap2.exists()){const cur=lSnap2.data().reserved||0;await updateDoc(doc(db,'listings',lid),{reserved:cur+qty});}}catch(e2){}
+    logEvent(analytics,'offer_made',{crop:cropName,price,qty});
+    closeModal();toast('✅ Offer sent! Farmer will be notified.');
+  }catch(e){toast('❌ Error: '+e.message);btn.disabled=false;btn.textContent='Send offer';}
+};
+
+// ═══════════════════════════════════════════════════
+// TRANSPORTER SCREENS
+// ═══════════════════════════════════════════════════
+function scrTransHome(){
+  return`<p class="greeting">Ready to roll? 🚛</p><p class="welcome">Transporter dashboard</p>
+  <div class="card" style="display:flex;gap:14px;align-items:center;">
+    <div style="font-size:36px;">🚛</div>
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:600;">${S.profile.vehicle||'Your vehicle'}</div>
+      <div style="font-size:12px;color:var(--g5);margin-top:2px;">${S.profile.capacity?S.profile.capacity+' tonne capacity':'Add vehicle in Profile'}</div>
+      <div class="twrap" style="margin-top:10px;"><div class="toggle on" id="avail-tog" onclick="toggleAvail()"><div class="tknob"></div></div><span style="font-size:13px;color:var(--g7);" id="avail-lbl">Available for jobs</span></div>
+    </div>
+  </div>
+  <div class="sg">
+    <div class="sb"><div class="sl">Open jobs</div><div class="sv" id="t-open">—</div><div class="ss" style="color:var(--am)">available</div></div>
+    <div class="sb"><div class="sl">My active</div><div class="sv" id="t-active">—</div><div class="ss" style="color:var(--bl)">in progress</div></div>
+    <div class="sb"><div class="sl">Total earned</div><div class="sv" id="t-earned">—</div><div class="ss">RWF</div></div>
+    <div class="sb"><div class="sl">Jobs done</div><div class="sv" id="t-done">—</div><div class="ss" style="color:var(--gm)">completed</div></div>
+  </div>
+  <div class="sh2"><span class="st">New jobs nearby</span></div>
+  <div id="thome-jobs"><div class="loading-inline">Loading jobs...</div></div>`;}
+
+function scrJobs(){
+  return`<div class="sh2"><span class="st">Available jobs</span><span class="sc2" id="jobs-cnt">loading...</span></div>
+  <div id="jobs-list"><div class="loading-inline">Loading...</div></div>
+  <div class="tip" style="margin-top:4px;"><div class="tip-t">💡 Return load tip</div><div class="tip-b">Jobs marked 🔄 have a return load. Accept both to earn up to <strong>40% more per trip</strong>.</div></div>`;}
+
+async function loadJobs(){
+  const cont=document.getElementById('jobs-list')||document.getElementById('thome-jobs'),cnt=document.getElementById('jobs-cnt');if(!cont)return;
+  try{
+    const jSnap=await getDocs(query(collection(db,'jobs'),where('status','==','open')));
+    const jobs=byDate(jSnap.docs.map(d=>({id:d.id,...d.data()})));
+    const mySnap=await getDocs(query(collection(db,'jobs'),where('transporterId','==',S.user?.uid||'x')));
+    const myJobs=mySnap.docs.map(d=>d.data());
+    const done=myJobs.filter(j=>j.status==='delivered'),active=myJobs.filter(j=>['in_progress','loaded'].includes(j.status));
+    const earned=done.reduce((s,j)=>s+(j.pay||0)+(j.returnLoad?.pay||0),0);
+    const el=id=>document.getElementById(id);
+    if(el('t-open'))el('t-open').textContent=jobs.length;
+    if(el('t-active'))el('t-active').textContent=active.length;
+    if(el('t-earned'))el('t-earned').textContent=earned>0?Math.round(earned/1000)+'k':'0';
+    if(el('t-done'))el('t-done').textContent=done.length;
+    if(cnt)cnt.textContent=jobs.length+' open';
+    cont.innerHTML=jobs.length===0?`<div class="empty">No jobs right now.<br>Jobs appear when farmers confirm broker offers.</div>`:jobs.map(j=>jcard(j)).join('');
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading jobs.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('jobs:',e);}
+}
+
+function scrActive(){return`<div class="sh2"><span class="st">Active delivery</span></div><div id="active-job"><div class="loading-inline">Loading...</div></div>`;}
+
+async function loadActiveJob(){
+  const cont=document.getElementById('active-job');if(!cont)return;
+  try{
+    const q=query(collection(db,'jobs'),where('transporterId','==',S.user.uid),where('status','in',['in_progress','loaded']));
+    const snap=await getDocs(q);
+    if(snap.empty){cont.innerHTML=`<div class="empty">No active deliveries.<br>Accept a job from the Jobs tab.</div>`;return;}
+    const j={id:snap.docs[0].id,...snap.docs[0].data()};
+    const steps=[
+      {l:'Job accepted',s:ts(j.createdAt),state:'done'},
+      {l:'Arrived at farm — '+j.from,s:j.from,state:'done'},
+      {l:'Loading cargo',s:j.cargo,state:j.status==='loaded'?'done':'active'},
+      {l:'En route to '+j.to,s:'Est. '+(j.pickup||'TBD'),state:j.status==='loaded'?'active':'todo'},
+      {l:'Delivered — payment released',s:'On delivery via MoMo',state:'todo'},
+    ];
+    cont.innerHTML=`<div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:2px;">${j.from} → ${j.to}</div>
+      <div style="font-size:12px;color:var(--g5);margin-bottom:14px;">${j.cargo} · ${j.brokerName}</div>
+      <div class="slist">${steps.map((s,i)=>`<div class="step"><div class="sline"><div class="sdot ${s.state==='done'?'s-done':s.state==='active'?'s-act':'s-todo'}"></div>${i<steps.length-1?'<div class="scon"></div>':''}</div><div class="scont"><div class="slabel" style="${s.state==='active'?'color:var(--am)':''}">${s.l}</div><div class="ssub">${s.s}</div></div></div>`).join('')}</div>
+      <button class="btn btn-a btn-full" style="margin-top:10px;" onclick="confirmLoaded('${j.id}')">Confirm cargo loaded ✓</button>
+    </div>
+    ${j.returnLoad?`<div class="retload"><div style="font-size:18px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load matched!</div><div class="retload-s">${j.returnLoad.from} → ${j.returnLoad.to} · ${j.returnLoad.cargo} · +${j.returnLoad.pay?.toLocaleString()} RWF</div></div></div><button class="btn btn-og btn-full" onclick="toast('✅ Return load confirmed!')">Accept return load (+${j.returnLoad.pay?.toLocaleString()} RWF)</button>`:''}
+    <button class="btn btn-g btn-full" style="margin-top:10px;" onclick="markDelivered('${j.id}')">Mark as delivered ✓</button>`;
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading active job.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('active job:',e);}
+}
+
+window.confirmLoaded=async function(jid){await updateDoc(doc(db,'jobs',jid),{status:'loaded'});toast('Cargo loaded! Safe travels! 🚛');loadActiveJob();};
+window.markDelivered=async function(jid){await updateDoc(doc(db,'jobs',jid),{status:'delivered',deliveredAt:serverTimestamp()});logEvent(analytics,'job_delivered');toast('✅ Delivered! Payment via MTN MoMo.');showScr('home');};
+
+window.openJobModal=async function(jid){
+  const jSnap=await getDoc(doc(db,'jobs',jid));if(!jSnap.exists())return;
+  const j={id:jid,...jSnap.data()};const rl=j.returnLoad||null;
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">Accept job</div><div class="ms2">${j.from} → ${j.to}</div>
+    <div class="card" style="margin-bottom:12px;"><div style="font-size:14px;font-weight:600;margin-bottom:8px;">Job details</div>
+      <div style="font-size:13px;color:var(--g5);line-height:1.7;">Cargo: <strong>${j.cargo}</strong><br>Pickup: ${j.pickup||'TBD'}<br>Broker: ${j.brokerName}<br>Pay: <strong style="color:var(--am)">${(j.pay||0).toLocaleString()} RWF</strong></div>
+    </div>
+    ${rl?`<div class="retload"><div style="font-size:18px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load available!</div><div class="retload-s">${rl.from} → ${rl.to} · ${rl.cargo} · +${rl.pay?.toLocaleString()} RWF extra</div></div></div>`:''}
+    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-a" onclick="acceptJob('${jid}')">Accept — ${((j.pay||0)+(rl?.pay||0)).toLocaleString()} RWF total</button></div>`;
+  document.getElementById('modal').classList.add('open');
+};
+
+window.acceptJob=async function(jid){
+  try{
+    await updateDoc(doc(db,'jobs',jid),{transporterId:S.user.uid,transporterName:S.profile.fname+' '+(S.profile.lname||''),status:'in_progress',acceptedAt:serverTimestamp()});
+    logEvent(analytics,'job_accepted');closeModal();toast('✅ Job accepted! Check your Active tab.');showScr('active');
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+window.toggleAvail=function(){
+  const tog=document.getElementById('avail-tog'),lbl=document.getElementById('avail-lbl');if(!tog)return;
+  tog.classList.toggle('on');lbl.textContent=tog.classList.contains('on')?'Available for jobs':'Not available';
+  toast(tog.classList.contains('on')?'You are now visible to brokers.':'You are now offline.');
+};
+
+function scrEarnings(){return`<div class="sh2"><span class="st">Earnings</span></div><div id="earnings-data"><div class="loading-inline">Loading...</div></div>`;}
+
+async function loadEarnings(){
+  const cont=document.getElementById('earnings-data');if(!cont)return;
+  try{
+    const snap=await getDocs(query(collection(db,'jobs'),where('transporterId','==',S.user.uid),where('status','==','delivered')));
+    const done=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const total=done.reduce((s,j)=>s+(j.pay||0)+(j.returnLoad?.pay||0),0);
+    const rl=done.filter(j=>j.returnLoad),rlEarned=rl.reduce((s,j)=>s+(j.returnLoad?.pay||0),0);
+    cont.innerHTML=`<div class="sg">
+      <div class="sb"><div class="sl">Total earned</div><div class="sv">${total.toLocaleString()}</div><div class="ss" style="color:var(--am)">RWF</div></div>
+      <div class="sb"><div class="sl">Jobs done</div><div class="sv">${done.length}</div><div class="ss" style="color:var(--gm)">completed</div></div>
+      <div class="sb"><div class="sl">Return loads</div><div class="sv">${rl.length}</div><div class="ss" style="color:var(--gm)">+${rlEarned.toLocaleString()} RWF</div></div>
+      <div class="sb"><div class="sl">Avg per job</div><div class="sv">${done.length>0?Math.round(total/done.length).toLocaleString():'0'}</div><div class="ss">RWF</div></div>
+    </div>
+    ${done.length>0?`<div class="card"><div class="ct">Recent payments</div>${done.slice(0,8).map(j=>`<div class="erow"><div><div class="elbl">${j.from} → ${j.to}</div><div class="esub">${j.crop||'Cargo'} · ${ts(j.deliveredAt)}</div></div><div class="ev">${((j.pay||0)+(j.returnLoad?.pay||0)).toLocaleString()} RWF</div></div>`).join('')}</div>`:`<div class="empty">Complete jobs to see earnings here.</div>`}
+    ${rlEarned>0?`<div class="tip"><div class="tip-t">🔄 Return load impact</div><div class="tip-b">Return loads earned you an extra <strong>${rlEarned.toLocaleString()} RWF</strong> on trips you'd have driven empty.</div></div>`:''}`;
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading earnings.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('earnings:',e);}
+}
+
+// ═══════════════════════════════════════════════════
+// GOVERNMENT SCREENS — regional access, no phone numbers
+// ═══════════════════════════════════════════════════
+function scrGovtHome(){
+  const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' Province';
+  return`<p class="greeting">Hub-In Rwanda 🏛️</p><p class="welcome">Famine Intelligence</p>
+  <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:8px 13px;font-size:12px;color:var(--rd);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+    📍 Showing data for: <strong>${regionLabel}</strong>
+  </div>
+  <div class="sg">
+    <div class="sb"><div class="sl">Registered users</div><div class="sv" id="gov-u">—</div><div class="ss" id="gov-us">loading...</div></div>
+    <div class="sb"><div class="sl">Active listings</div><div class="sv" id="gov-l">—</div><div class="ss" style="color:var(--gm)">in region</div></div>
+    <div class="sb"><div class="sl">Total supply</div><div class="sv" id="gov-kg">—</div><div class="ss">tonnes</div></div>
+    <div class="sb"><div class="sl">Transactions</div><div class="sv" id="gov-tx">—</div><div class="ss">confirmed</div></div>
+  </div>
+  <div class="card" id="gov-alerts-card"><div class="ct">Recent alerts</div><div class="loading-inline">Loading...</div></div>
+  <button class="btn btn-r btn-full" onclick="openAlertModal()">+ Publish new alert</button>`;
+}
+
+async function loadGovtHome(){
+  try{
+    const uSnap=await getDocs(collection(db,'users'));
+    let users=uSnap.docs.map(d=>d.data());
+    if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
+    const farmers=users.filter(u=>u.role==='farmer'),brokers=users.filter(u=>u.role==='broker'),transporters=users.filter(u=>u.role==='transporter');
+
+    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    let listings=lSnap.docs.map(d=>d.data());
+    if(S.govtRegion!=='all')listings=listings.filter(l=>l.province===S.govtRegion||getProvince(l.loc||'')===S.govtRegion);
+    const totalKg=listings.reduce((s,l)=>s+(l.qty||0),0);
+
+    const txSnap=await getDocs(collection(db,'transactions'));
+
+    const el=id=>document.getElementById(id);
+    if(el('gov-u'))el('gov-u').textContent=users.length;
+    if(el('gov-us'))el('gov-us').textContent=`${farmers.length}F · ${brokers.length}B · ${transporters.length}T`;
+    if(el('gov-l'))el('gov-l').textContent=listings.length;
+    if(el('gov-kg'))el('gov-kg').textContent=(totalKg/1000).toFixed(1)+'t';
+    if(el('gov-tx'))el('gov-tx').textContent=txSnap.size;
+
+    const aSnap=await getDocs(query(collection(db,'govt_alerts')));
+    const ac=el('gov-alerts-card');
+    if(ac){
+      const alerts=byDate(aSnap.docs.map(d=>({...d.data()})));
+      ac.innerHTML=`<div class="ct">Recent alerts</div>`+(alerts.length===0?`<div class="empty" style="padding:12px 0;">No alerts yet.</div>`:alerts.slice(0,4).map(a=>`<div class="aitem"><div class="adot" style="background:${a.sev==='red'?'var(--rd)':a.sev==='amber'?'var(--am)':'var(--gm)'}"></div><div><div class="atext">${a.text}</div><div class="atime">${ts(a.createdAt)}</div></div></div>`).join(''));
+    }
+  }catch(e){console.error(e);}
+}
+
+// ─── FAMINE INTELLIGENCE — NASA POWER + FAO + WFP + Platform data ───
+function scrFamine(){
+  return`<div class="sh2"><span class="st">Famine Intelligence</span></div>
+  <div class="card" style="background:linear-gradient(135deg,#0d2408,#1a3a0f);color:var(--w);">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.07em;color:rgba(255,255,255,0.5);margin-bottom:8px;">DATA SOURCES</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🛰️ NASA POWER</span>
+      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🌍 FAO Yields</span>
+      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🌾 AgriConnect</span>
+      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🏥 WFP</span>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:10px;line-height:1.6;">Score = Rainfall deficit (30%) + FAO yield gap (25%) + Platform supply (25%) + WFP vulnerability (20%)</div>
+  </div>
+  <div id="famine-scores"><div class="loading-inline">📡 Querying NASA POWER API & computing scores...</div></div>`;
+}
+
+async function loadFamine(){
+  const cont=document.getElementById('famine-scores');if(!cont)return;
+  try{
+    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    const allListings=lSnap.docs.map(d=>d.data());
+
+    const provinces=S.govtRegion==='all'?Object.keys(PROV_COORDS):[S.govtRegion];
+    const scores=await Promise.all(provinces.map(async p=>{
+      const result=await calcFamineScore(p,allListings);
+      return{province:p,...result};
+    }));
+    scores.sort((a,b)=>b.score-a.score);
+
+    let html=`<div class="card"><div class="ct">Risk by province</div>`;
+    scores.forEach(s=>{
+      const r=riskLabel(s.score);
+      html+=`<div class="riskrow">
+        <span class="rreg">${s.province.charAt(0).toUpperCase()+s.province.slice(1)}</span>
+        <div class="rtrack"><div class="rfill ${r.fill}" style="width:${s.score}%"></div></div>
+        <span class="rscore" style="color:${s.score>=70?'var(--rd)':s.score>=50?'var(--am)':s.score>=30?'var(--gm)':'#1D9E75'}">${s.score}</span>
+        <span class="risk-pill ${r.cls}">${r.label}</span>
+      </div>`;
+    });
+    html+=`</div>`;
+
+    // Breakdown cards
+    scores.forEach(s=>{
+      const r=riskLabel(s.score);
+      html+=`<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-weight:700;font-size:15px;">${s.province.charAt(0).toUpperCase()+s.province.slice(1)} Province</div>
+          <span class="risk-pill ${r.cls}" style="font-size:12px;padding:4px 12px;">${r.label} — ${s.score}/100</span>
+        </div>
+        <div class="sg" style="margin-bottom:10px;">
+          <div class="sb"><div class="sl">🛰️ Rainfall deficit</div><div class="sv" style="font-size:16px;color:${s.rainfallScore>50?'var(--rd)':'var(--gm)'}">${s.rainfallScore}</div><div class="ss">NASA POWER</div></div>
+          <div class="sb"><div class="sl">🌍 FAO yield gap</div><div class="sv" style="font-size:16px;color:${s.yieldScore>50?'var(--rd)':'var(--gm)'}">${s.yieldScore}</div><div class="ss">vs historical</div></div>
+          <div class="sb"><div class="sl">🌾 Supply deficit</div><div class="sv" style="font-size:16px;color:${s.supplyScore>50?'var(--rd)':'var(--gm)'}">${s.supplyScore}</div><div class="ss">${s.listingCount} listings · ${(s.totalKg/1000).toFixed(1)}t</div></div>
+          <div class="sb"><div class="sl">🏥 WFP vuln.</div><div class="sv" style="font-size:16px;color:${s.vulnScore>50?'var(--rd)':'var(--gm)'}">${s.vulnScore}</div><div class="ss">population score</div></div>
+        </div>
+      </div>`;
+    });
+
+    cont.innerHTML=html;
+  }catch(e){cont.innerHTML=`<div class="empty">Error computing scores: ${e.message}</div>`;}
+}
+
+function scrSMS(){
+  return`<div class="sh2"><span class="st">SMS broadcast</span></div>
+  <div class="sg"><div class="sb"><div class="sl">Users in region</div><div class="sv" id="sms-u">—</div></div><div class="sb"><div class="sl">Farmers</div><div class="sv" id="sms-f">—</div></div></div>
+  <div class="card"><div class="ct">Quick templates</div>
+    ${[{l:'Price alert',b:'AGRI: Maize rose to 290 RWF/kg (+5%). List your produce now at AgriConnect.'},{l:'Famine warning',b:'GOV ALERT: Food shortage risk in your district. Register surplus at AgriConnect.'},{l:'Transport job',b:'AGRI JOB: Truck needed Nyagatare→Kigali. 1,500kg Maize. Pay: 45,000 RWF.'}].map(x=>`<div style="margin-bottom:14px;"><div style="font-size:12px;font-weight:600;color:var(--g5);margin-bottom:6px;">${x.l}</div><div class="smspre"><div class="smsh">Preview</div><div class="smsb">${x.b}</div></div><button class="btn btn-og btn-sm" style="margin-top:6px;" onclick="toast('SMS queued for broadcast!')">Send broadcast</button></div>`).join('')}
+  </div>
+  <div class="card"><div class="ct">Custom broadcast</div>
+    <div class="fg"><label class="fl">Target</label><select class="fi"><option>All users in region</option><option>All farmers</option><option>All transporters</option><option>All brokers</option></select></div>
+    <div class="fg"><label class="fl">Message (max 160 chars)</label><textarea class="fi" id="sms-msg" rows="3" maxlength="160" placeholder="Type your message..."></textarea></div>
+    <button class="btn btn-r btn-full" onclick="toast('Custom SMS broadcast sent!')">Send broadcast</button>
+  </div>`;}
+
+async function loadSMSStats(){
+  try{
+    const snap=await getDocs(collection(db,'users'));let users=snap.docs.map(d=>d.data());
+    if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
+    const el=id=>document.getElementById(id);
+    if(el('sms-u'))el('sms-u').textContent=users.length;
+    if(el('sms-f'))el('sms-f').textContent=users.filter(u=>u.role==='farmer').length;
+  }catch(e){}
+}
+
+window.openAlertModal=function(){
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">Publish alert</div><div class="ms2">Alert will appear in the government dashboard.</div>
+    <div class="fg"><label class="fl">Alert message</label><textarea class="fi" id="al-text" rows="3" placeholder="Describe the situation..."></textarea></div>
+    <div class="fg"><label class="fl">Severity</label><select class="fi" id="al-sev"><option value="red">Critical (Red)</option><option value="amber">Warning (Amber)</option><option value="green">Update (Green)</option></select></div>
+    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-r" onclick="submitAlert()">Publish alert</button></div>`;
+  document.getElementById('modal').classList.add('open');
+};
+
+window.submitAlert=async function(){
+  const text=document.getElementById('al-text').value.trim(),sev=document.getElementById('al-sev').value;
+  if(!text){toast('Please enter alert text.');return;}
+  await addDoc(collection(db,'govt_alerts'),{text,sev,region:S.govtRegion,createdAt:serverTimestamp()});
+  logEvent(analytics,'alert_published',{severity:sev});closeModal();toast('✅ Alert published!');loadGovtHome();
+};
+
+// ─── PROFILE ───
+function scrProfile(){
+  const u=S.profile;const init=(u.fname?u.fname[0]:'')+(u.lname?u.lname[0]:'');
+  const colors={farmer:'var(--gm)',broker:'var(--bl)',transporter:'var(--am)',govt:'var(--rd)'};
+  return`<div class="phero">
+    <div class="pavatar" style="background:${colors[u.role]||'var(--gm)'};">${init.toUpperCase()}</div>
+    <div class="pname">${u.fname} ${u.lname||''}</div><div class="ploc">${u.loc||''}</div>
+    ${u.phone?`<div class="mpill">📱 ${u.phone}</div>`:''}
+    ${u.momo?`<div class="mpill">💰 MoMo: ${u.momo}</div>`:''}
+  </div>
+  <div class="sg">
+    <div class="sb"><div class="sl">Role</div><div class="sv" style="font-size:15px;">${u.role?u.role.charAt(0).toUpperCase()+u.role.slice(1):''}</div></div>
+    <div class="sb"><div class="sl">Member since</div><div class="sv" style="font-size:14px;">${u.joined?new Date(u.joined).toLocaleDateString('en-RW',{month:'short',year:'numeric'}):'2026'}</div></div>
+    ${u.vehicle?`<div class="sb"><div class="sl">Vehicle</div><div class="sv" style="font-size:12px;">${u.vehicle}</div></div>`:''}
+    ${u.capacity?`<div class="sb"><div class="sl">Capacity</div><div class="sv">${u.capacity}t</div></div>`:''}
+  </div>
+  <div class="card"><div class="ct">Update profile</div>
+    <div class="fg"><label class="fl">Location</label><input class="fi" id="up-loc" type="text" value="${u.loc||''}"></div>
+    <div class="fg"><label class="fl">MoMo number</label><div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="up-momo" type="tel" value="${(u.momo||'').replace('+250','')}" maxlength="9" inputmode="numeric"></div></div>
+    ${u.role==='transporter'?`<div class="fg"><label class="fl">Vehicle</label><input class="fi" id="up-vehicle" type="text" value="${u.vehicle||''}"></div><div class="fg"><label class="fl">Capacity (tonnes)</label><input class="fi" id="up-cap" type="number" value="${u.capacity||''}"></div>`:''}
+    <div class="fg"><label class="fl">Language</label>
+      <select class="fi" id="up-lang" onchange="setLang(this.value)">
+        <option value="en" ${S.lang==='en'?'selected':''}>English</option>
+        <option value="rw" ${S.lang==='rw'?'selected':''}>Kinyarwanda</option>
+        <option value="sw" ${S.lang==='sw'?'selected':''}>Kiswahili</option>
+      </select>
+    </div>
+    <button class="btn btn-g btn-full" onclick="saveProfile()">Save changes</button>
+  </div>
+  <button class="btn btn-og btn-full" style="margin-top:0;" onclick="doLogout()">⏻ Sign out</button>`;
+}
+
+window.saveProfile=async function(){
+  if(!S.user)return;
+  const momo=cleanPhone(document.getElementById('up-momo').value);
+  const updates={loc:document.getElementById('up-loc').value.trim(),momo:momo?'+250'+momo:''};
+  if(document.getElementById('up-vehicle'))updates.vehicle=document.getElementById('up-vehicle').value.trim();
+  if(document.getElementById('up-cap'))updates.capacity=parseFloat(document.getElementById('up-cap').value)||null;
+  await updateDoc(doc(db,'users',S.user.uid),updates);
+  S.profile={...S.profile,...updates};document.getElementById('tb-loc').textContent=updates.loc||'';
+  toast('✅ Profile updated!');
+};
+
+// ─── HELPERS ───
+function lcard(l,viewer){
+  if(!window._lc)window._lc=[];if(!window._lc.find(x=>x.id===l.id))window._lc.push(l);
+  const avail=(l.qty||0)-(l.reserved||0);
+  const stat=l.status==='available'?`<span class="badge bg">Available</span>${l.reserved>0?` <span class="qty-res">${l.reserved.toLocaleString()} kg pending offers</span>`:''}`:'<span class="badge bgr">Sold</span>';
+  const iconHtml=l.icon?`<img src="${l.icon}" style="width:46px;height:46px;border-radius:var(--rsm);object-fit:cover;" alt="${l.crop}">`:(l.emoji||'🌾');
+  const act=viewer==='farmer'
+    ?`<button class="btn btn-og btn-sm" onclick="toast('${l.crop} · ${l.qty?.toLocaleString()} kg · ${l.price} RWF/kg')">View</button>`
+    :`<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;"><button class="btn btn-b btn-sm" onclick="openOfferModal('${l.id}')">Make offer</button></div>`;
+  const dt=l.date?new Date(l.date).toLocaleDateString('en-RW',{day:'numeric',month:'short'}):'now';
+  return`<div class="lcard lcard-${l.type||'other'}">
+    <div class="lt"><div class="li">${iconHtml}</div>
+      <div class="linfo">
+        <div class="ln">${l.crop}</div>
+        <div class="lm">${l.loc} · <span class="qty-avail">${avail.toLocaleString()} kg available</span> · Ready ${dt}</div>
+        <div style="margin-top:5px;">${stat}</div>
+      </div>
+      <div class="lp"><div class="lamt">${l.price}</div><div class="lunit">RWF/kg</div></div>
+    </div>
+    <div class="lf"><span style="font-size:12px;color:var(--g5);"><span class="star">★</span> ${(l.farmerRating||5).toFixed(1)} · ${l.farmerName}</span>${act}</div>
+  </div>`;}
+
+function jcard(j){
+  return`<div class="jcard">
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><div class="jr">${j.from} → ${j.to}</div><span class="badge ba">Open</span></div>
+    <div class="jd">${j.cargo}</div>
+    ${j.returnLoad?`<div class="retload"><div style="font-size:16px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load available!</div><div class="retload-s">${j.returnLoad.from} → ${j.returnLoad.to} · +${j.returnLoad.pay?.toLocaleString()} RWF</div></div></div>`:''}
+    <div class="jmg"><div><div class="jml">Cargo</div><div class="jmv">${j.cargo}</div></div><div><div class="jml">Pickup</div><div class="jmv">${j.pickup||'TBD'}</div></div><div><div class="jml">To</div><div class="jmv">${j.to}</div></div><div><div class="jml">Broker</div><div class="jmv">${j.brokerName}</div></div></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+      <div><div class="jpay">${(j.pay||0).toLocaleString()} RWF</div>${j.returnLoad?`<div style="font-size:11px;color:var(--gm);font-weight:700;">+${j.returnLoad.pay?.toLocaleString()} return = ${((j.pay||0)+(j.returnLoad?.pay||0)).toLocaleString()} total</div>`:''}</div>
+      <button class="btn btn-a btn-sm" onclick="openJobModal('${j.id}')">Accept</button>
+    </div>
+  </div>`;}
+
+
+// ═══════════════════════════════════════════════════
+// CHAT SYSTEM
+// ═══════════════════════════════════════════════════
+
+// ─── ANONYMOUS CHAT IDs ───
+function anonId(uid, role) {
+  if(!uid) return role==='farmer'?'Farmer #????':'Broker #????';
+  const suffix = uid.slice(-4).toUpperCase();
+  return role==='farmer' ? `Farmer #${suffix}` : `Broker #${suffix}`;
+}
+const PHONE_REGEX=/(?:\+?250|0)?7[2389]\d{7}|\+?25078\d{7}|\d{10}/g;
+
+function scrChat(){
+  return`<div class="sh2"><span class="st">Messages</span></div><div id="chat-list-screen"><div class="loading-inline">Loading chats...</div></div>`;
+}
+
+async function loadChatList(){
+  const cont=document.getElementById('chat-list-screen');if(!cont)return;
+  try{
+    const field=S.role==='farmer'?'farmerId':'brokerId';
+    const snap=await getDocs(query(collection(db,'chats'),where(field,'==',S.user.uid)));
+    const chats=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(chats.length===0){cont.innerHTML=`<div class="empty">No messages yet.<br>Messages appear when you make or receive an offer.</div>`;return;}
+    cont.innerHTML=chats.map(c=>`<div class="card" style="cursor:pointer;margin-bottom:10px;" onclick="openChat('${c.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">${S.role==='farmer'?(c.brokerName||anonId(c.brokerId,'broker')):(c.farmerName||anonId(c.farmerId,'farmer'))}</div>
+          <div style="font-size:11px;color:var(--g5);margin-top:2px;">${c.cropName||'Deal'} · ${ts(c.lastAt)}</div>
+        </div>
+        ${c.unread>0?`<span style="background:var(--gm);color:var(--w);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;">${c.unread} new</span>`:''}
+      </div>
+      <div style="font-size:12px;color:var(--g3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.lastMessage||'No messages yet'}</div>
+    </div>`).join('');
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading chats.</div>`;}
+}
+
+window.openChat=async function(chatId){
+  document.getElementById('screens').innerHTML=`<div class="scr show" id="chat-screen">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button class="btn btn-og btn-sm" onclick="showScr('chat')">← Back</button>
+      <div id="chat-title" style="font-size:15px;font-weight:600;"></div>
+    </div>
+    <div class="card">
+      <div class="chat-warn" id="chat-warn">⚠️ Phone numbers are not allowed on AgriConnect. Please keep all communication on the platform.</div>
+      <div class="aqa-badge"><div class="aqa-badge-t">🔍 Quality Assurance available</div>Request an AgriConnect field inspection before confirming payment. <a href="#" onclick="requestAQA('${chatId}')" style="color:var(--gm);font-weight:700;">Request inspection →</a></div>
+      <div class="chat-bubble" id="chat-msgs"><div class="loading-inline">Loading...</div></div>
+      <div class="chat-input-row">
+        <input class="chat-inp" id="chat-inp" placeholder="Type a message... (no phone numbers allowed)" maxlength="500" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg('${chatId}');}">
+        <button class="btn btn-g btn-sm" onclick="sendMsg('${chatId}')">Send</button>
+      </div>
+    </div>
+  </div>`;
+  await loadChatMsgs(chatId);
+};
+
+async function loadChatMsgs(chatId){
+  const cont=document.getElementById('chat-msgs');if(!cont)return;
+  try{
+    const chatSnap=await getDoc(doc(db,'chats',chatId));
+    const chatData=chatSnap.exists()?chatSnap.data():{};
+    const titleEl=document.getElementById('chat-title');
+    const otherName=S.role==='farmer'?(chatData.brokerName||anonId(chatData.brokerId,'broker')):(chatData.farmerName||anonId(chatData.farmerId,'farmer'));
+    if(titleEl)titleEl.textContent=otherName+' · '+(chatData.cropName||'Deal');
+    const msgsSnap=await getDocs(collection(db,'chats',chatId,'messages'));
+    const msgs=msgsSnap.docs.map(d=>d.data()).sort((a,b)=>{
+      const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
+      const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
+      return ta-tb;
+    });
+    if(msgs.length===0){cont.innerHTML=`<div class="empty" style="padding:20px 0;">No messages yet. Say hello!</div>`;return;}
+    cont.innerHTML=msgs.map(m=>{
+      const mine=m.senderId===S.user?.uid;
+      const otherEmoji=S.role==='farmer'?'🤝':'🌱';
+      if(m.blocked)return`<div class="msg ${mine?'mine':''}"><div class="msg-body blocked">⚠️ Message blocked — contact sharing not allowed</div></div>`;
+      return`<div class="msg ${mine?'mine':''}">
+        <div class="msg-av">${mine?'👤':otherEmoji}</div>
+        <div><div class="msg-body">${m.text}</div><div class="msg-time">${ts(m.createdAt)}</div></div>
+      </div>`;
+    }).join('');
+    cont.scrollTop=cont.scrollHeight;
+    // clear unread
+    if(chatData.unread>0)await updateDoc(doc(db,'chats',chatId),{unread:0}).catch(()=>{});
+  }catch(e){cont.innerHTML=`<div class="empty">Error loading messages.</div>`;}
+}
+
+window.sendMsg=async function(chatId){
+  const inp=document.getElementById('chat-inp');
+  let text=(inp?.value||'').trim();
+  if(!text)return;
+  // Phone blocking
+  const hasPhone=PHONE_REGEX.test(text);
+  PHONE_REGEX.lastIndex=0;
+  if(hasPhone){
+    const warn=document.getElementById('chat-warn');
+    if(warn)warn.style.display='block';
+    await addDoc(collection(db,'chats',chatId,'messages'),{
+      senderId:S.user.uid,senderName:anonId(S.user.uid,S.role),
+      text:'[blocked]',blocked:true,createdAt:serverTimestamp()
+    });
+    const chatRef=doc(db,'chats',chatId);
+    const cs=await getDoc(chatRef);
+    const fc=(cs.exists()?cs.data().flaggedCount||0:0)+1;
+    await updateDoc(chatRef,{flaggedCount:fc,lastAt:serverTimestamp()}).catch(()=>{});
+    inp.value='';
+    loadChatMsgs(chatId);
+    return;
+  }
+  inp.value='';
+  try{
+    await addDoc(collection(db,'chats',chatId,'messages'),{senderId:S.user.uid,senderName:anonId(S.user.uid,S.role),text,blocked:false,createdAt:serverTimestamp()});
+    await updateDoc(doc(db,'chats',chatId),{lastMessage:text.slice(0,60),lastAt:serverTimestamp(),unread:1}).catch(async()=>{
+      await setDoc(doc(db,'chats',chatId),{lastMessage:text.slice(0,60),lastAt:serverTimestamp(),unread:1,flaggedCount:0},{merge:true});
+    });
+    loadChatMsgs(chatId);
+  }catch(e){toast('❌ Failed to send: '+e.message);}
+};
+
+// Create/open chat from an offer
+window.openChatFromOffer=async function(offerId){
+  try{
+    const oSnap=await getDoc(doc(db,'offers',offerId));if(!oSnap.exists())return;
+    const o=oSnap.data();
+    const chatId=`${o.listingId}_${o.brokerId}`;
+    const chatRef=doc(db,'chats',chatId);
+    const chatSnap=await getDoc(chatRef);
+    if(!chatSnap.exists()){
+      await setDoc(chatRef,{farmerId:o.farmerId,farmerName:anonId(o.farmerId,'farmer'),brokerId:o.brokerId,brokerName:anonId(o.brokerId,'broker'),cropName:o.cropName,listingId:o.listingId,offerId,flaggedCount:0,unread:0,lastMessage:'',lastAt:serverTimestamp()});
+    }
+    openChat(chatId);
+  }catch(e){toast('❌ Chat error: '+e.message);}
+};
+
+// Request AQA inspection from chat
+window.requestAQA=async function(chatId){
+  try{
+    const cs=await getDoc(doc(db,'chats',chatId));
+    const c=cs.exists()?cs.data():{};
+    await addDoc(collection(db,'aqa_requests'),{
+      chatId,listingId:c.listingId||'',farmerId:c.farmerId||'',farmerName:c.farmerName||'Farmer',
+      brokerId:c.brokerId||'',brokerName:c.brokerName||'Broker',crop:c.cropName||'Produce',
+      location:'',qty:0,dealValue:0,fee:0,status:'pending',photos:[],notes:'',createdAt:serverTimestamp()
+    });
+    toast('✅ AQA inspection requested! Our team will visit the farm within 48 hours.');
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+// ═══════════════════════════════════════════════════
+// UPDATED lcard — show reserved qty + chat button
+// ═══════════════════════════════════════════════════
+// route loadHome properly
+async function loadHome(){
+  if(S.role==='farmer'){await loadFarmerHome();}
+  else if(S.role==='broker'){await loadBrokerHome();}
+  else if(S.role==='transporter'){await loadJobs();}
+  else if(S.role==='govt'){await loadGovtHome();}
+}
+
+async function loadFarmerHome(){
+  try{
+    const q=query(collection(db,'listings'),where('userId','==',S.user.uid));
+    const snap=await getDocs(q);const listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
+    const oSnap=await getDocs(query(collection(db,'offers'),where('farmerId','==',S.user.uid),where('status','==','pending')));
+    const tSnap=await getDocs(query(collection(db,'transactions'),where('farmerId','==',S.user.uid)));
+    const earned=tSnap.docs.reduce((s,d)=>s+(d.data().amount||0),0);
+    const el=id=>document.getElementById(id);
+    if(el('f-l'))el('f-l').textContent=listings.length;
+    if(el('f-oc'))el('f-oc').textContent=`${oSnap.size} pending`;
+    if(el('f-e'))el('f-e').textContent=earned>0?Math.round(earned/1000)+'k':'0';
+    if(el('f-p'))el('f-p').textContent=oSnap.size;
+    if(el('f-ps'))el('f-ps').textContent=oSnap.size>0?'Review now':'None yet';
+    if(el('f-lc'))el('f-lc').textContent=listings.length+' listings';
+    const cont=el('farmer-listings');
+    if(cont)cont.innerHTML=listings.length===0?`<div class="empty">No listings yet.<br>Post your first produce below!</div>`:listings.slice(0,3).map(l=>lcard(l,'farmer')).join('');
+  }catch(e){console.error(e);}
+}
+
+window.closeModal=function(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');};
+window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
+function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+
+// Boot — show landing immediately, no waiting for Firebase
+showPage('pg-land');
+</script>
+</body>
+</html>
