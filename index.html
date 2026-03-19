@@ -337,7 +337,6 @@ const analytics=getAnalytics(fbApp);
 
 // ─── CREDENTIALS ───
 const GOVT_ID="HUBIN-GOV-2026",GOVT_CODE="AgriGov@2026";
-const ADMIN_USER="hubin-admin",ADMIN_PASS="AgriAdmin@2026";
 
 // ─── STATE ───
 let S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:'en',govtRegion:'all'};
@@ -633,9 +632,6 @@ window.doGovtLogin=function(){
   }else{showErr('Invalid credentials. Contact admin@hub-in.rw');}
 };
 
-    enterApp();
-  }else{showErr('Invalid admin credentials.');}
-};
 
 window.doLogout=async function(){
   if(S.user)await signOut(auth);
