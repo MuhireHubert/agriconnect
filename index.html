@@ -804,9 +804,10 @@ async function loadOffers(){
         <div style="font-size:13px;color:var(--g5);margin-bottom:6px;">Wants <strong>${o.qty.toLocaleString()} kg</strong> of ${o.cropName||'produce'} · ${o.pickup||''}</div>
         <div style="font-size:17px;font-weight:700;margin-bottom:2px;">${o.price} RWF/kg · <span style="color:var(--gm)">${total.toLocaleString()} RWF</span></div>
         <div style="font-size:11px;color:var(--g3);margin-bottom:12px;">Commission (3%): ${comm.toLocaleString()} RWF deducted on confirmation</div>
-        <div style="display:flex;gap:10px;">
-          <button class="btn btn-g btn-sm" style="flex:1;" onclick="acceptOffer('${o.id}')">Accept & confirm</button>
-          <button class="btn btn-og btn-sm" style="flex:1;" onclick="declineOffer('${o.id}')">Decline</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-g btn-sm" style="flex:1;min-width:120px;" onclick="acceptOffer('${o.id}')">Accept & confirm</button>
+          <button class="btn btn-og btn-sm" style="flex:1;min-width:80px;" onclick="declineOffer('${o.id}')">Decline</button>
+          <button class="btn btn-og btn-sm" onclick="openChatFromListing('${o.listingId}','${S.user?.uid||''}','','${o.cropName||''}')">💬 Chat</button>
         </div></div>`;
     });
     if(history.length>0){
@@ -1262,7 +1263,10 @@ function lcard(l,viewer){
     :(l.emoji||l.icon||'🌾');
   const act=viewer==='farmer'
     ?`<button class="btn btn-og btn-sm" onclick="toast('${l.crop} · ${l.qty?.toLocaleString()} kg · ${l.price} RWF/kg')">View</button>`
-    :`<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;"><button class="btn btn-b btn-sm" onclick="openOfferModal('${l.id}')">Make offer</button></div>`;
+    :`<div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-og btn-sm" onclick="openChatFromListing('${l.id}','${l.userId}','${l.farmerName}','${l.crop}')">💬 Chat</button>
+        <button class="btn btn-b btn-sm" onclick="openOfferModal('${l.id}')">Make offer</button>
+      </div>`;
   const dt=l.date?new Date(l.date).toLocaleDateString('en-RW',{day:'numeric',month:'short'}):'now';
   return`<div class="lcard lcard-${l.type||'other'}">
     <div class="lt"><div class="li">${iconHtml}</div>
@@ -1290,53 +1294,105 @@ function jcard(j){
 
 
 // ═══════════════════════════════════════════════════
-// CHAT SYSTEM
+// CHAT SYSTEM — fixed
 // ═══════════════════════════════════════════════════
+const PHONE_REGEX=/(?:\+?250|0)?7[2389]\d{7}|\+?25078\d{7}|0\d{9}/g;
 
-// ─── ANONYMOUS CHAT IDs ───
-function anonId(uid, role) {
-  if(!uid) return role==='farmer'?'Farmer #????':'Broker #????';
-  const suffix = uid.slice(-4).toUpperCase();
-  return role==='farmer' ? `Farmer #${suffix}` : `Broker #${suffix}`;
+function anonId(uid,role){
+  if(!uid)return role==='farmer'?'Farmer #????':'Broker #????';
+  return role==='farmer'?`Farmer #${uid.slice(-4).toUpperCase()}`:`Broker #${uid.slice(-4).toUpperCase()}`;
 }
-const PHONE_REGEX=/(?:\+?250|0)?7[2389]\d{7}|\+?25078\d{7}|\d{10}/g;
 
+// Build a deterministic chat ID from listing + broker
+function makeChatId(listingId,brokerId){return`${listingId}_${brokerId}`;}
+
+// ── CHAT SCREEN (list of conversations) ──
 function scrChat(){
-  return`<div class="sh2"><span class="st">Messages</span></div><div id="chat-list-screen"><div class="loading-inline">Loading chats...</div></div>`;
+  return`<div class="sh2"><span class="st">Messages</span></div>
+  <div id="chat-list-screen"><div class="loading-inline">Loading chats...</div></div>`;
 }
 
 async function loadChatList(){
   const cont=document.getElementById('chat-list-screen');if(!cont)return;
+  if(!S.user){cont.innerHTML=`<div class="empty">Please log in to view messages.</div>`;return;}
   try{
+    // Check for admin messages first
+    const adminMsgsSnap=await getDocs(query(collection(db,'admin_messages'),where('toUid','==',S.user.uid))).catch(()=>({docs:[]}));
+    const adminMsgs=adminMsgsSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const unreadAdmin=adminMsgs.filter(m=>!m.read);
+
+    // Query chats where this user is farmer OR broker
     const field=S.role==='farmer'?'farmerId':'brokerId';
     const snap=await getDocs(query(collection(db,'chats'),where(field,'==',S.user.uid)));
     const chats=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(chats.length===0){cont.innerHTML=`<div class="empty">No messages yet.<br>Messages appear when you make or receive an offer.</div>`;return;}
-    cont.innerHTML=chats.map(c=>`<div class="card" style="cursor:pointer;margin-bottom:10px;" onclick="openChat('${c.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-size:14px;font-weight:600;">${S.role==='farmer'?(c.brokerName||anonId(c.brokerId,'broker')):(c.farmerName||anonId(c.farmerId,'farmer'))}</div>
-          <div style="font-size:11px;color:var(--g5);margin-top:2px;">${c.cropName||'Deal'} · ${ts(c.lastAt)}</div>
+
+    let html='';
+
+    // Show admin messages at the top if any
+    if(adminMsgs.length>0){
+      html+=`<div style="background:linear-gradient(135deg,var(--al),#fff8ee);border:1px solid var(--am);border-radius:var(--rmd);padding:14px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:16px;">🛡️</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--g9);">Hub-In Rwanda</div>
+            <div style="font-size:11px;color:var(--g5);">Official messages from AgriConnect</div>
+          </div>
+          ${unreadAdmin.length>0?`<span style="background:var(--am);color:var(--w);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:auto;">${unreadAdmin.length} new</span>`:''}
         </div>
-        ${c.unread>0?`<span style="background:var(--gm);color:var(--w);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;">${c.unread} new</span>`:''}
-      </div>
-      <div style="font-size:12px;color:var(--g3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.lastMessage||'No messages yet'}</div>
-    </div>`).join('');
-  }catch(e){cont.innerHTML=`<div class="empty">Error loading chats.</div>`;}
+        ${adminMsgs.slice().reverse().slice(0,3).map(m=>`
+          <div style="background:${m.read?'rgba(0,0,0,0.03)':'var(--al)'};border-radius:var(--rsm);padding:10px;margin-bottom:6px;border-left:3px solid var(--am);">
+            <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:3px;">${m.msgType==='warning'?'⚠️ Warning':m.msgType==='suspension'?'🚫 Suspension Notice':m.msgType==='info'?'ℹ️ Info':'📢 Official Notice'}</div>
+            <div style="font-size:13px;color:var(--g7);line-height:1.5;">${m.text}</div>
+            <div style="font-size:10px;color:var(--g3);margin-top:4px;">${m.createdAt?.toDate?m.createdAt.toDate().toLocaleDateString():'—'}</div>
+          </div>`).join('')}
+        <button class="btn btn-og btn-sm btn-full" style="margin-top:4px;" onclick="markAdminMsgsRead()">Mark all as read</button>
+      </div>`;
+      // Mark as read in background
+      unreadAdmin.forEach(m=>updateDoc(doc(db,'admin_messages',m.id),{read:true}).catch(()=>{}));
+    }
+
+    if(chats.length===0){
+      html+=`<div class="empty">No deal messages yet.<br><br>${S.role==='farmer'?'You will see messages here when brokers contact you about your listings.':'Go to Browse, tap "💬 Chat" on any listing to start a conversation.'}</div>`;
+      cont.innerHTML=html;
+      return;
+    }
+    html+=chats.map(c=>{
+      const otherName=S.role==='farmer'?(c.brokerName||'Broker'):(c.farmerName||'Farmer');
+      return`<div class="card" style="cursor:pointer;margin-bottom:10px;" onclick="openChat('${c.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-size:14px;font-weight:600;">${otherName}</div>
+            <div style="font-size:11px;color:var(--g5);margin-top:2px;">${c.cropName||'Deal'} · ${ts(c.lastAt)}</div>
+          </div>
+          ${c.unread>0?`<span style="background:var(--gm);color:var(--w);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">${c.unread} new</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--g3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.lastMessage||'No messages yet'}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('loadChatList error:',e);
+    cont.innerHTML=`<div class="empty">Error loading chats.<br><small style="color:var(--rd)">${e.message}</small></div>`;
+  }
 }
 
+// ── OPEN A SPECIFIC CHAT ──
 window.openChat=async function(chatId){
   document.getElementById('screens').innerHTML=`<div class="scr show" id="chat-screen">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <button class="btn btn-og btn-sm" onclick="showScr('chat')">← Back</button>
-      <div id="chat-title" style="font-size:15px;font-weight:600;"></div>
+      <div id="chat-title" style="font-size:15px;font-weight:600;color:var(--g9);"></div>
     </div>
-    <div class="card">
-      <div class="chat-warn" id="chat-warn">⚠️ Phone numbers are not allowed on AgriConnect. Please keep all communication on the platform.</div>
-      <div class="aqa-badge"><div class="aqa-badge-t">🔍 Quality Assurance available</div>Request an AgriConnect field inspection before confirming payment. <a href="#" onclick="requestAQA('${chatId}')" style="color:var(--gm);font-weight:700;">Request inspection →</a></div>
-      <div class="chat-bubble" id="chat-msgs"><div class="loading-inline">Loading...</div></div>
+    <div class="card" style="padding:14px;">
+      <div class="aqa-badge">
+        <div class="aqa-badge-t">🔍 Quality assurance available</div>
+        Request an AgriConnect field inspection before confirming payment.
+        <a href="#" onclick="requestAQA('${chatId}');return false;" style="color:var(--gm);font-weight:700;">Request inspection →</a>
+      </div>
+      <div class="chat-warn" id="chat-warn">⚠️ Phone numbers are not allowed. All deals must happen on AgriConnect.</div>
+      <div class="chat-bubble" id="chat-msgs"><div class="loading-inline">Loading messages...</div></div>
       <div class="chat-input-row">
-        <input class="chat-inp" id="chat-inp" placeholder="Type a message... (no phone numbers allowed)" maxlength="500" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg('${chatId}');}">
+        <input class="chat-inp" id="chat-inp" type="text" placeholder="Type a message..." maxlength="500"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg('${chatId}');}">
         <button class="btn btn-g btn-sm" onclick="sendMsg('${chatId}')">Send</button>
       </div>
     </div>
@@ -1344,95 +1400,168 @@ window.openChat=async function(chatId){
   await loadChatMsgs(chatId);
 };
 
+// ── LOAD MESSAGES ──
 async function loadChatMsgs(chatId){
   const cont=document.getElementById('chat-msgs');if(!cont)return;
   try{
+    // Get chat metadata
     const chatSnap=await getDoc(doc(db,'chats',chatId));
-    const chatData=chatSnap.exists()?chatSnap.data():{};
+    if(!chatSnap.exists()){
+      cont.innerHTML=`<div class="empty" style="padding:16px 0;">Start the conversation!</div>`;
+      const titleEl=document.getElementById('chat-title');
+      if(titleEl)titleEl.textContent='New conversation';
+      return;
+    }
+    const chatData=chatSnap.data();
     const titleEl=document.getElementById('chat-title');
-    const otherName=S.role==='farmer'?(chatData.brokerName||anonId(chatData.brokerId,'broker')):(chatData.farmerName||anonId(chatData.farmerId,'farmer'));
-    if(titleEl)titleEl.textContent=otherName+' · '+(chatData.cropName||'Deal');
+    const otherName=S.role==='farmer'?(chatData.brokerName||'Broker'):(chatData.farmerName||'Farmer');
+    if(titleEl)titleEl.textContent=`${otherName} · ${chatData.cropName||'Deal'}`;
+
+    // Get messages subcollection
     const msgsSnap=await getDocs(collection(db,'chats',chatId,'messages'));
-    const msgs=msgsSnap.docs.map(d=>d.data()).sort((a,b)=>{
-      const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
-      const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
-      return ta-tb;
-    });
-    if(msgs.length===0){cont.innerHTML=`<div class="empty" style="padding:20px 0;">No messages yet. Say hello!</div>`;return;}
-    cont.innerHTML=msgs.map(m=>{
-      const mine=m.senderId===S.user?.uid;
+    const msgs=msgsSnap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>{
+        const ta=a.createdAt?.seconds||0;
+        const tb=b.createdAt?.seconds||0;
+        return ta-tb;
+      });
+
+    if(msgs.length===0){
+      cont.innerHTML=`<div class="empty" style="padding:16px 0;">No messages yet. Say hello!</div>`;
+    } else {
+      const myEmoji=S.role==='farmer'?'🌱':'🤝';
       const otherEmoji=S.role==='farmer'?'🤝':'🌱';
-      if(m.blocked)return`<div class="msg ${mine?'mine':''}"><div class="msg-body blocked">⚠️ Message blocked — contact sharing not allowed</div></div>`;
-      return`<div class="msg ${mine?'mine':''}">
-        <div class="msg-av">${mine?'👤':otherEmoji}</div>
-        <div><div class="msg-body">${m.text}</div><div class="msg-time">${ts(m.createdAt)}</div></div>
-      </div>`;
-    }).join('');
+      cont.innerHTML=msgs.map(m=>{
+        const mine=m.senderId===S.user?.uid;
+        if(m.blocked)return`<div class="msg ${mine?'mine':''}"><div class="msg-body blocked">⚠️ Message blocked — contact sharing not allowed</div></div>`;
+        return`<div class="msg ${mine?'mine':''}">
+          <div class="msg-av">${mine?myEmoji:otherEmoji}</div>
+          <div>
+            <div class="msg-body">${m.text}</div>
+            <div class="msg-time">${ts(m.createdAt)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
     cont.scrollTop=cont.scrollHeight;
-    // clear unread
-    if(chatData.unread>0)await updateDoc(doc(db,'chats',chatId),{unread:0}).catch(()=>{});
-  }catch(e){cont.innerHTML=`<div class="empty">Error loading messages.</div>`;}
+
+    // Clear unread
+    if((chatData.unread||0)>0){
+      await updateDoc(doc(db,'chats',chatId),{unread:0}).catch(()=>{});
+    }
+  }catch(e){
+    console.error('loadChatMsgs error:',e);
+    cont.innerHTML=`<div class="empty">Error loading messages.<br><small style="color:var(--rd)">${e.message}</small></div>`;
+  }
 }
 
+// ── SEND A MESSAGE ──
 window.sendMsg=async function(chatId){
+  if(!S.user){toast('Please log in to send messages.');return;}
   const inp=document.getElementById('chat-inp');
-  let text=(inp?.value||'').trim();
+  const text=(inp?.value||'').trim();
   if(!text)return;
-  // Phone blocking
-  const hasPhone=PHONE_REGEX.test(text);
+
+  // Check for phone numbers
   PHONE_REGEX.lastIndex=0;
-  if(hasPhone){
+  if(PHONE_REGEX.test(text)){
     const warn=document.getElementById('chat-warn');
     if(warn)warn.style.display='block';
-    await addDoc(collection(db,'chats',chatId,'messages'),{
-      senderId:S.user.uid,senderName:anonId(S.user.uid,S.role),
-      text:'[blocked]',blocked:true,createdAt:serverTimestamp()
-    });
-    const chatRef=doc(db,'chats',chatId);
-    const cs=await getDoc(chatRef);
-    const fc=(cs.exists()?cs.data().flaggedCount||0:0)+1;
-    await updateDoc(chatRef,{flaggedCount:fc,lastAt:serverTimestamp()}).catch(()=>{});
+    // Save blocked message for moderation
+    try{
+      await addDoc(collection(db,'chats',chatId,'messages'),{
+        senderId:S.user.uid,
+        senderName:anonId(S.user.uid,S.role),
+        senderRole:S.role,
+        text:'[blocked]',
+        blocked:true,
+        createdAt:serverTimestamp(),
+      });
+      // Increment flagged count
+      await updateDoc(doc(db,'chats',chatId),{
+        flaggedCount:((await getDoc(doc(db,'chats',chatId))).data()?.flaggedCount||0)+1,
+        lastAt:serverTimestamp(),
+      }).catch(()=>{});
+    }catch(e2){console.error(e2);}
     inp.value='';
-    loadChatMsgs(chatId);
+    setTimeout(()=>loadChatMsgs(chatId),500);
     return;
   }
-  inp.value='';
+
+  inp.value=''; // Clear input immediately for responsiveness
   try{
-    await addDoc(collection(db,'chats',chatId,'messages'),{senderId:S.user.uid,senderName:anonId(S.user.uid,S.role),text,blocked:false,createdAt:serverTimestamp()});
-    await updateDoc(doc(db,'chats',chatId),{lastMessage:text.slice(0,60),lastAt:serverTimestamp(),unread:1}).catch(async()=>{
-      await setDoc(doc(db,'chats',chatId),{lastMessage:text.slice(0,60),lastAt:serverTimestamp(),unread:1,flaggedCount:0},{merge:true});
+    await addDoc(collection(db,'chats',chatId,'messages'),{
+      senderId:S.user.uid,
+      senderName:anonId(S.user.uid,S.role),
+      senderRole:S.role,
+      text,
+      blocked:false,
+      createdAt:serverTimestamp(),
     });
-    loadChatMsgs(chatId);
-  }catch(e){toast('❌ Failed to send: '+e.message);}
+    // Update chat metadata
+    const chatRef=doc(db,'chats',chatId);
+    const chatSnap=await getDoc(chatRef);
+    if(chatSnap.exists()){
+      await updateDoc(chatRef,{lastMessage:text.slice(0,60),lastAt:serverTimestamp(),unread:1});
+    }else{
+      // Chat doc missing — recreate it (edge case)
+      await setDoc(chatRef,{
+        farmerId:'',farmerName:'',brokerId:'',brokerName:'',
+        cropName:'',listingId:'',flaggedCount:0,unread:1,
+        lastMessage:text.slice(0,60),lastAt:serverTimestamp(),
+      },{merge:true});
+    }
+    await loadChatMsgs(chatId);
+  }catch(e){
+    console.error('sendMsg error:',e);
+    toast('❌ Failed to send: '+e.message);
+    inp.value=text; // Restore text on failure
+  }
 };
 
-// Create/open chat from an offer
-window.openChatFromOffer=async function(offerId){
+// ── START CHAT FROM A LISTING (broker initiates) ──
+window.openChatFromListing=async function(listingId,farmerId,farmerName,cropName){
+  if(!S.user){toast('Please log in first.');return;}
+  const chatId=makeChatId(listingId,S.user.uid);
   try{
-    const oSnap=await getDoc(doc(db,'offers',offerId));if(!oSnap.exists())return;
-    const o=oSnap.data();
-    const chatId=`${o.listingId}_${o.brokerId}`;
     const chatRef=doc(db,'chats',chatId);
     const chatSnap=await getDoc(chatRef);
     if(!chatSnap.exists()){
-      await setDoc(chatRef,{farmerId:o.farmerId,farmerName:anonId(o.farmerId,'farmer'),brokerId:o.brokerId,brokerName:anonId(o.brokerId,'broker'),cropName:o.cropName,listingId:o.listingId,offerId,flaggedCount:0,unread:0,lastMessage:'',lastAt:serverTimestamp()});
+      await setDoc(chatRef,{
+        farmerId,
+        farmerName:anonId(farmerId,'farmer'),
+        brokerId:S.user.uid,
+        brokerName:anonId(S.user.uid,'broker'),
+        cropName,
+        listingId,
+        flaggedCount:0,
+        unread:0,
+        lastMessage:'',
+        lastAt:serverTimestamp(),
+      });
     }
-    openChat(chatId);
-  }catch(e){toast('❌ Chat error: '+e.message);}
+    await openChat(chatId);
+  }catch(e){
+    console.error('openChatFromListing error:',e);
+    toast('❌ Could not open chat: '+e.message);
+  }
 };
 
-// Request AQA inspection from chat
+// ── REQUEST AQA FROM CHAT ──
 window.requestAQA=async function(chatId){
   try{
     const cs=await getDoc(doc(db,'chats',chatId));
     const c=cs.exists()?cs.data():{};
     await addDoc(collection(db,'aqa_requests'),{
-      chatId,listingId:c.listingId||'',farmerId:c.farmerId||'',farmerName:c.farmerName||'Farmer',
-      brokerId:c.brokerId||'',brokerName:c.brokerName||'Broker',crop:c.cropName||'Produce',
-      location:'',qty:0,dealValue:0,fee:0,status:'pending',photos:[],notes:'',createdAt:serverTimestamp()
+      chatId,listingId:c.listingId||'',
+      farmerId:c.farmerId||'',farmerName:c.farmerName||'Farmer',
+      brokerId:c.brokerId||'',brokerName:c.brokerName||'Broker',
+      crop:c.cropName||'Produce',location:'',qty:0,dealValue:0,fee:0,
+      status:'pending',photos:[],notes:'',createdAt:serverTimestamp(),
     });
     toast('✅ AQA inspection requested! Our team will visit the farm within 48 hours.');
-  }catch(e){toast('❌ Error: '+e.message);}
+  }catch(e){toast('❌ Error requesting inspection: '+e.message);}
 };
 
 // ═══════════════════════════════════════════════════
