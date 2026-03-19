@@ -395,15 +395,15 @@ function t(k){return(LANGS[S.lang]||LANGS.en)[k]||k;}
 
 // ─── DEFAULT CROPS ───
 let CROPS=[
-  {name:'Maize',icon:'🌽',type:'maize',price:290,change:5},
-  {name:'Irish Potatoes',icon:'🥔',type:'potatoes',price:175,change:-3},
-  {name:'Beans',icon:'🫘',type:'beans',price:660,change:2},
-  {name:'Cassava',icon:'🥬',type:'cassava',price:120,change:1},
-  {name:'Sorghum',icon:'🌾',type:'sorghum',price:310,change:-1},
-  {name:'Tomatoes',icon:'🍅',type:'tomatoes',price:400,change:8},
-  {name:'Rice',icon:'🍚',type:'rice',price:520,change:3},
-  {name:'Banana',icon:'🍌',type:'banana',price:90,change:0},
-  {name:'Wheat',icon:'🌾',type:'wheat',price:280,change:-2},
+  {name:'Maize',emoji:'🌽',icon:null,type:'maize',price:290,change:5},
+  {name:'Irish Potatoes',emoji:'🥔',icon:null,type:'potatoes',price:175,change:-3},
+  {name:'Beans',emoji:'🫘',icon:null,type:'beans',price:660,change:2},
+  {name:'Cassava',emoji:'🥬',icon:null,type:'cassava',price:120,change:1},
+  {name:'Sorghum',emoji:'🌾',icon:null,type:'sorghum',price:310,change:-1},
+  {name:'Tomatoes',emoji:'🍅',icon:null,type:'tomatoes',price:400,change:8},
+  {name:'Rice',emoji:'🍚',icon:null,type:'rice',price:520,change:3},
+  {name:'Banana',emoji:'🍌',icon:null,type:'banana',price:90,change:0},
+  {name:'Wheat',emoji:'🌾',icon:null,type:'wheat',price:280,change:-2},
 ];
 
 
@@ -416,8 +416,26 @@ function byDate(arr){
   });
 }
 async function loadCrops(){
-  try{const snap=await getDocs(collection(db,'crops'));if(!snap.empty)CROPS=snap.docs.map(d=>({id:d.id,...d.data()}));}
-  catch(e){console.log('Using default crops');}
+  try{
+    const snap=await getDocs(collection(db,'crops'));
+    if(!snap.empty){
+      CROPS=snap.docs.map(d=>{
+        const data=d.data();
+        // Normalise: support both old (icon=emoji) and new (emoji+icon) formats
+        const isPhotoUrl = data.icon && data.icon.startsWith('http');
+        return {
+          id:d.id,
+          name:data.name||'',
+          emoji:data.emoji||(isPhotoUrl?'🌾':data.icon)||'🌾',
+          icon:isPhotoUrl?data.icon:null,
+          type:data.type||'other',
+          price:data.prices?.['Rwanda (All)']||data.price||0,
+          prices:data.prices||{'Rwanda (All)':data.price||0},
+          change:data.change||0,
+        };
+      });
+    }
+  }catch(e){console.log('Using default crops');}
 }
 
 // ─── RWANDA PROVINCE MAP ───
@@ -709,7 +727,7 @@ function scrHome(){
 function scrMarket(){
   return`<div class="sh2"><span class="st">Live prices</span></div>
   <div class="card"><div class="ct">Kigali markets — today</div>
-    ${CROPS.map(c=>`<div class="trow"><span class="tc">${c.icon} ${c.name}</span><span class="tpr">${c.price} RWF/kg</span><span class="tch ${(c.change||0)>0?'up':'dn'}">${(c.change||0)>0?'+':''}${c.change||0}%</span></div>`).join('')}
+    ${CROPS.map(c=>`<div class="trow"><span class="tc">${c.emoji||c.icon||'🌾'} ${c.name}</span><span class="tpr">${c.price} RWF/kg</span><span class="tch ${(c.change||0)>0?'up':'dn'}">${(c.change||0)>0?'+':''}${c.change||0}%</span></div>`).join('')}
   </div>
   <div class="tip"><div class="tip-t">💡 Tip</div><div class="tip-b">Brokers typically offer 5–10% below market. Know your floor before accepting any offer!</div></div>
   <div class="card"><div class="ct">SMS price alerts</div>
@@ -723,7 +741,7 @@ function scrPost(){
   <div class="card">
     <div class="fg"><label class="fl">Crop type</label>
       <select class="fi" id="p-crop" onchange="updatePriceTip()">
-        ${CROPS.map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join('')}
+        ${CROPS.map(c=>`<option value="${c.name}">${c.emoji||c.icon||'🌾'} ${c.name}</option>`).join('')}
       </select>
     </div>
     <div class="tip" id="price-tip"><div class="tip-t">📊 Market price</div><div class="tip-b" id="tip-body">Loading...</div></div>
@@ -746,7 +764,7 @@ window.updatePriceTip=function(){
 
 window.submitListing=async function(){
   const cropName=document.getElementById('p-crop').value;
-  const crop=CROPS.find(c=>c.name===cropName)||{icon:'🌾',type:'other'};
+  const crop=CROPS.find(c=>c.name===cropName)||{emoji:'🌾',icon:null,type:'other'};
   const qty=parseFloat(document.getElementById('p-qty').value);
   const price=parseFloat(document.getElementById('p-price').value);
   const loc=document.getElementById('p-loc').value.trim();
@@ -758,7 +776,7 @@ window.submitListing=async function(){
     await addDoc(collection(db,'listings'),{
       userId:S.user.uid,farmerName:S.profile.fname+' '+(S.profile.lname||''),
       farmerPhone:S.profile.phone,farmerRating:S.profile.rating||5.0,
-      crop:cropName,icon:crop.icon||'🌾',type:crop.type||'other',
+      crop:cropName,emoji:crop.emoji||'🌾',icon:crop.icon||null,type:crop.type||'other',
       qty,price,loc,province:getProvince(loc),date,notes,status:'available',createdAt:serverTimestamp()
     });
     logEvent(analytics,'listing_posted',{crop:cropName,qty,price});
@@ -1238,7 +1256,10 @@ function lcard(l,viewer){
   if(!window._lc)window._lc=[];if(!window._lc.find(x=>x.id===l.id))window._lc.push(l);
   const avail=(l.qty||0)-(l.reserved||0);
   const stat=l.status==='available'?`<span class="badge bg">Available</span>${l.reserved>0?` <span class="qty-res">${l.reserved.toLocaleString()} kg pending offers</span>`:''}`:'<span class="badge bgr">Sold</span>';
-  const iconHtml=l.icon?`<img src="${l.icon}" style="width:46px;height:46px;border-radius:var(--rsm);object-fit:cover;" alt="${l.crop}">`:(l.emoji||'🌾');
+  // icon = photo URL (from admin upload), emoji = text emoji (fallback)
+  const iconHtml=l.icon&&l.icon.startsWith('http')
+    ?`<img src="${l.icon}" style="width:46px;height:46px;border-radius:var(--rsm);object-fit:cover;" alt="${l.crop}">`
+    :(l.emoji||l.icon||'🌾');
   const act=viewer==='farmer'
     ?`<button class="btn btn-og btn-sm" onclick="toast('${l.crop} · ${l.qty?.toLocaleString()} kg · ${l.price} RWF/kg')">View</button>`
     :`<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;"><button class="btn btn-b btn-sm" onclick="openOfferModal('${l.id}')">Make offer</button></div>`;
