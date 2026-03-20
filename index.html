@@ -208,6 +208,29 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
 /* reserved qty */
 .qty-avail{color:var(--gm);font-weight:700;}
 .qty-res{color:var(--am);font-size:11px;}
+
+/* RATING STARS */
+.star-row{display:flex;gap:6px;margin:10px 0;}
+.star-btn{font-size:26px;cursor:pointer;opacity:0.3;transition:opacity 0.15s;background:none;border:none;padding:2px;}
+.star-btn.lit,.star-btn:hover{opacity:1;}
+.rating-card{background:linear-gradient(135deg,var(--gl),var(--bll));border:1px solid var(--gb);border-radius:var(--rmd);padding:16px;margin-bottom:12px;}
+.rating-title{font-size:15px;font-weight:700;color:var(--gd);margin-bottom:4px;}
+.rating-sub{font-size:12px;color:var(--g5);margin-bottom:12px;}
+/* QUALITY BADGES */
+.qbadge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;margin-right:4px;}
+.qbadge-photo{background:#e8f0fe;color:#1a5fa8;}
+.qbadge-trust{background:var(--gl);color:var(--gd);}
+.qbadge-aqa{background:var(--al);color:var(--am);}
+/* PHOTO UPLOAD */
+.photo-upload-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+.photo-thumb{width:64px;height:64px;border-radius:var(--rsm);object-fit:cover;border:1px solid var(--g1);}
+.photo-add{width:64px;height:64px;border-radius:var(--rsm);border:2px dashed var(--g3);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:var(--g3);}
+.photo-add:hover{border-color:var(--gm);color:var(--gm);}
+/* SUSPENDED */
+.suspended-banner{background:var(--rll);border:1px solid var(--rd);border-radius:var(--rxl);padding:28px 24px;text-align:center;margin:20px;}
+/* AQA TRIGGER */
+.aqa-trigger{background:linear-gradient(135deg,var(--al),#fff8ee);border:1px solid var(--am);border-radius:var(--rmd);padding:13px;margin-bottom:12px;}
+.aqa-trigger-t{font-size:13px;font-weight:700;color:var(--am);margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -328,12 +351,14 @@ import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-ap
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import{getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,updateDoc,deleteDoc,query,where,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import{getAnalytics,logEvent}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+import{getStorage,ref,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const FC={apiKey:"AIzaSyDPmXpUzzz1kU9JnnbyoTW6f80cqV2Wauk",authDomain:"agriconnect-8d029.firebaseapp.com",projectId:"agriconnect-8d029",storageBucket:"agriconnect-8d029.firebasestorage.app",messagingSenderId:"215579651241",appId:"1:215579651241:web:ecd2a8be0a414cea910db8",measurementId:"G-D6L42KXF3T"};
 const fbApp=initializeApp(FC);
 const auth=getAuth(fbApp);
 const db=getFirestore(fbApp);
 const analytics=getAnalytics(fbApp);
+const storage=getStorage(fbApp);
 
 // ─── CREDENTIALS ───
 const GOVT_ID="HUBIN-GOV-2026",GOVT_CODE="AgriGov@2026";
@@ -535,7 +560,9 @@ onAuthStateChanged(auth,async user=>{
     try{
       const snap=await getDoc(doc(db,'users',user.uid));
       if(snap.exists()){
-        S.user=user;S.profile=snap.data();S.role=S.profile.role;
+        const pd=snap.data();
+        if(pd.suspended){showPage('pg-land');return;}
+        S.user=user;S.profile=pd;S.role=pd.role;
         await loadCrops();enterApp();return;
       }
     }catch(e){console.error('Auth restore failed:',e);}
@@ -628,7 +655,11 @@ window.doLogin=async function(){
       await signOut(auth);setBtnLoad('login-btn',false,'Sign in');return;
     }
     const profile=snap.data();
-    // FIX: role check — if wrong portal, still let them in with correct role
+    // Check suspension
+    if(profile.suspended){
+      showErr('⛔ This account has been suspended. Contact admin@hub-in.rw for help.');
+      await signOut(auth);setBtnLoad('login-btn',false,'Sign in');return;
+    }
     S.user=cred.user;S.profile=profile;S.role=profile.role;
     logEvent(analytics,'login',{role:profile.role});
     await loadCrops();enterApp();
@@ -752,9 +783,31 @@ function scrPost(){
     <div class="fg"><label class="fl">Location</label><input class="fi" id="p-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province" value="${S.profile.loc||''}"></div>
     <div class="fg"><label class="fl">Ready from</label><input class="fi" id="p-date" type="date"></div>
     <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" id="p-notes" type="text" placeholder="e.g. freshly harvested, dry stored"></div>
+    <div class="fg">
+      <label class="fl">Produce photos <span style="color:var(--g3);font-weight:400;">(up to 5 — adds Photo Verified badge)</span></label>
+      <div class="photo-upload-row" id="photo-preview-row">
+        <label class="photo-add" title="Add photo">
+          📷
+          <input type="file" id="p-photos" accept="image/*" multiple style="display:none" onchange="previewListingPhotos(this)">
+        </label>
+      </div>
+    </div>
     <div class="twrap" style="margin-bottom:14px;"><div class="toggle on"><div class="tknob"></div></div><span style="font-size:13px;color:var(--g7);">SMS notification when offers arrive</span></div>
     <button class="btn btn-g btn-full" id="post-btn" onclick="submitListing()">Post listing</button>
   </div>`;}
+
+window.previewListingPhotos=function(input){
+  const row=document.getElementById('photo-preview-row');if(!row)return;
+  // Remove old previews (keep the add button)
+  row.querySelectorAll('.photo-thumb').forEach(el=>el.remove());
+  const files=Array.from(input.files).slice(0,5);
+  files.forEach(file=>{
+    const img=document.createElement('img');
+    img.className='photo-thumb';
+    img.src=URL.createObjectURL(file);
+    row.insertBefore(img,row.querySelector('.photo-add'));
+  });
+};
 
 window.updatePriceTip=function(){
   const crop=CROPS.find(c=>c.name===document.getElementById('p-crop')?.value);
@@ -773,11 +826,30 @@ window.submitListing=async function(){
   if(!cropName||!qty||!price||!loc){toast('❌ Please fill in all required fields.');return;}
   const btn=document.getElementById('post-btn');btn.disabled=true;btn.textContent='Posting...';
   try{
+    // Upload photos if any
+    const photoFiles=Array.from(document.getElementById('p-photos')?.files||[]).slice(0,5);
+    const photoUrls=[];
+    if(photoFiles.length>0){
+      btn.textContent='Uploading photos...';
+      for(const file of photoFiles){
+        const r=ref(storage,`listings/${S.user.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(r,file);
+        const url=await getDownloadURL(r);
+        photoUrls.push(url);
+      }
+    }
+    // Check trusted seller status
+    const profileSnap=await getDoc(doc(db,'users',S.user.uid));
+    const prof=profileSnap.exists()?profileSnap.data():{};
+    const isTrusted=(prof.completedDeals||0)>=3&&(prof.rating||0)>=4.5;
+    btn.textContent='Posting...';
     await addDoc(collection(db,'listings'),{
       userId:S.user.uid,farmerName:S.profile.fname+' '+(S.profile.lname||''),
       farmerPhone:S.profile.phone,farmerRating:S.profile.rating||5.0,
       crop:cropName,emoji:crop.emoji||'🌾',icon:crop.icon||null,type:crop.type||'other',
-      qty,price,loc,province:getProvince(loc),date,notes,status:'available',createdAt:serverTimestamp()
+      qty,price,loc,province:getProvince(loc),date,notes,
+      photos:photoUrls,photoVerified:photoUrls.length>0,
+      trustedSeller:isTrusted,status:'available',createdAt:serverTimestamp()
     });
     logEvent(analytics,'listing_posted',{crop:cropName,qty,price});
     toast('✅ Listing posted! Brokers notified.');showScr('home');
@@ -825,9 +897,14 @@ window.acceptOffer=async function(oid){
     await updateDoc(doc(db,'offers',oid),{status:'accepted',acceptedAt:serverTimestamp()});
     const lSnap=await getDoc(doc(db,'listings',o.listingId));const l=lSnap.exists()?lSnap.data():{};
     await addDoc(collection(db,'transactions'),{farmerId:S.user.uid,brokerId:o.brokerId,offerId:oid,listingId:o.listingId,amount:o.price*o.qty,commission:Math.round(o.price*o.qty*0.03),status:'confirmed',createdAt:serverTimestamp()});
-    await addDoc(collection(db,'jobs'),{offerId:oid,farmerId:S.user.uid,brokerId:o.brokerId,farmerName:S.profile.fname+' '+(S.profile.lname||''),brokerName:o.brokerName,from:l.loc||S.profile.loc||'Farm',to:o.deliveryLoc||'Kigali',cargo:`${l.crop||o.cropName} · ${o.qty?.toLocaleString()} kg`,qty:o.qty,crop:l.crop||o.cropName,pickup:o.pickup||'TBD',pay:Math.round((o.qty||0)*30),status:'open',createdAt:serverTimestamp()});
+    const grossPay=Math.round((o.qty||0)*30);
+    const deliveryComm=Math.round(grossPay*0.05);
+    const netPay=grossPay-deliveryComm;
+    await addDoc(collection(db,'jobs'),{offerId:oid,farmerId:S.user.uid,brokerId:o.brokerId,farmerName:S.profile.fname+' '+(S.profile.lname||''),brokerName:o.brokerName,from:l.loc||S.profile.loc||'Farm',to:o.deliveryLoc||'Kigali',cargo:`${l.crop||o.cropName} · ${o.qty?.toLocaleString()} kg`,qty:o.qty,crop:l.crop||o.cropName,pickup:o.pickup||'TBD',grossPay,deliveryComm,pay:netPay,status:'open',createdAt:serverTimestamp()});
     logEvent(analytics,'offer_accepted',{amount:o.price*o.qty});
-    toast('✅ Offer accepted! Transport job created.');loadOffers();
+    toast('✅ Offer accepted! Transport job created.');
+    setTimeout(()=>showRatingModal(oid,'broker_deal'),1500);
+    loadOffers();
   }catch(e){toast('❌ Error: '+e.message);}
 };
 
@@ -909,6 +986,7 @@ window.openOfferModal=function(lid){
   document.getElementById('modal-content').innerHTML=`
     <div class="mt2">Make an offer</div>
     <div class="ms2">${l?.crop||'Produce'} · Listed at ${l?.price||'?'} RWF/kg · ${l?.qty?.toLocaleString()||'?'} kg · ${l?.loc||''}${mp?` · Market: ${mp.price} RWF/kg`:''}</div>
+    ${(l?.qty>=2000||(l?.price*(l?.qty||0))>=500000)?`<div class="aqa-trigger"><div class="aqa-trigger-t">🔍 AQA Inspection recommended</div><div style="font-size:12px;color:var(--g7);">This is a large order (${(l?.qty||0).toLocaleString()} kg · ${((l?.price||0)*(l?.qty||0)).toLocaleString()} RWF). An AgriConnect field agent will verify produce quality before payment. Fee: 1% added to your offer.</div><label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;"><input type="checkbox" id="mo-aqa" style="width:16px;height:16px;accent-color:var(--am)"><span style="font-size:12px;font-weight:600;color:var(--am);">Request AQA inspection (+1% fee)</span></label></div>`:''}
     <div class="fg"><label class="fl">Your offer price (RWF/kg)</label><input class="fi" id="mo-p" type="number" value="${Math.round((l?.price||280)*0.95)}" oninput="calcOfferTotal()" inputmode="numeric"></div>
     <div class="fg"><label class="fl">Quantity you want (kg)</label><input class="fi" id="mo-q" type="number" value="${Math.floor((l?.qty||1000)*0.75)}" oninput="calcOfferTotal()" inputmode="numeric"></div>
     <div class="fg"><label class="fl">Delivery location</label><input class="fi" id="mo-dl" placeholder="e.g. Kimironko market, Kigali"></div>
@@ -920,8 +998,10 @@ window.openOfferModal=function(lid){
 
 window.calcOfferTotal=function(){
   const p=parseFloat(document.getElementById('mo-p')?.value)||0,q=parseFloat(document.getElementById('mo-q')?.value)||0;
+  const aqa=document.getElementById('mo-aqa')?.checked;
+  const base=p*q;const comm=Math.round(base*0.03);const aqaFee=aqa?Math.round(base*0.01):0;
   const el=document.getElementById('offer-total');
-  if(el)el.innerHTML=`Total: <strong>${(p*q).toLocaleString()} RWF</strong> &nbsp;·&nbsp; Commission (3%): <strong>${Math.round(p*q*0.03).toLocaleString()} RWF</strong>`;
+  if(el)el.innerHTML=`Total: <strong>${base.toLocaleString()} RWF</strong> · Commission (3%): <strong>${comm.toLocaleString()} RWF</strong>${aqa?` · AQA fee (1%): <strong style="color:var(--am)">${aqaFee.toLocaleString()} RWF</strong>`:''}`;
 };
 
 window.submitOffer=async function(lid,farmerId,cropName,farmerName){
@@ -930,7 +1010,10 @@ window.submitOffer=async function(lid,farmerId,cropName,farmerName){
   if(!price||!qty){toast('Please fill in price and quantity.');return;}
   const btn=document.getElementById('offer-sub');btn.disabled=true;btn.textContent='Sending...';
   try{
-    await addDoc(collection(db,'offers'),{listingId:lid,brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),brokerLoc:S.profile.loc||'Kigali',farmerId,farmerName,cropName,price,qty,deliveryLoc:dloc,pickup,status:'pending',createdAt:serverTimestamp()});
+    const aqaRequested=document.getElementById('mo-aqa')?.checked||false;
+    const aqaFee=aqaRequested?Math.round(price*qty*0.01):0;
+    await addDoc(collection(db,'offers'),{listingId:lid,brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),brokerLoc:S.profile.loc||'Kigali',farmerId,farmerName,cropName,price,qty,deliveryLoc:dloc,pickup,aqaRequested,aqaFee,status:'pending',createdAt:serverTimestamp()});
+    if(aqaRequested){await addDoc(collection(db,'aqa_requests'),{listingId:lid,brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),farmerId,farmerName,cropName,qty,dealValue:price*qty,fee:aqaFee,status:'pending',photos:[],notes:'',createdAt:serverTimestamp()}).catch(()=>{});}
     // Reserve quantity on listing
     try{const lSnap2=await getDoc(doc(db,'listings',lid));if(lSnap2.exists()){const cur=lSnap2.data().reserved||0;await updateDoc(doc(db,'listings',lid),{reserved:cur+qty});}}catch(e2){}
     logEvent(analytics,'offer_made',{crop:cropName,price,qty});
@@ -1012,7 +1095,18 @@ async function loadActiveJob(){
 }
 
 window.confirmLoaded=async function(jid){await updateDoc(doc(db,'jobs',jid),{status:'loaded'});toast('Cargo loaded! Safe travels! 🚛');loadActiveJob();};
-window.markDelivered=async function(jid){await updateDoc(doc(db,'jobs',jid),{status:'delivered',deliveredAt:serverTimestamp()});logEvent(analytics,'job_delivered');toast('✅ Delivered! Payment via MTN MoMo.');showScr('home');};
+window.markDelivered=async function(jid){
+  const jSnap=await getDoc(doc(db,'jobs',jid));
+  const j=jSnap.exists()?jSnap.data():{};
+  await updateDoc(doc(db,'jobs',jid),{status:'delivered',deliveredAt:serverTimestamp()});
+  // Record delivery commission in transactions
+  if(j.deliveryComm>0){
+    await addDoc(collection(db,'transactions'),{type:'delivery_commission',jobId:jid,transporterId:j.transporterId||S.user.uid,amount:j.deliveryComm||0,commission:j.deliveryComm||0,status:'confirmed',createdAt:serverTimestamp()}).catch(()=>{});
+  }
+  logEvent(analytics,'job_delivered');
+  // Trigger rating modal
+  showRatingModal(jid,'transporter_delivery');
+};
 
 window.openJobModal=async function(jid){
   const jSnap=await getDoc(doc(db,'jobs',jid));if(!jSnap.exists())return;
@@ -1020,7 +1114,7 @@ window.openJobModal=async function(jid){
   document.getElementById('modal-content').innerHTML=`
     <div class="mt2">Accept job</div><div class="ms2">${j.from} → ${j.to}</div>
     <div class="card" style="margin-bottom:12px;"><div style="font-size:14px;font-weight:600;margin-bottom:8px;">Job details</div>
-      <div style="font-size:13px;color:var(--g5);line-height:1.7;">Cargo: <strong>${j.cargo}</strong><br>Pickup: ${j.pickup||'TBD'}<br>Broker: ${j.brokerName}<br>Pay: <strong style="color:var(--am)">${(j.pay||0).toLocaleString()} RWF</strong></div>
+      <div style="font-size:13px;color:var(--g5);line-height:1.7;">Cargo: <strong>${j.cargo}</strong><br>Pickup: ${j.pickup||'TBD'}<br>Broker: ${j.brokerName}<br>Gross pay: ${(j.grossPay||j.pay||0).toLocaleString()} RWF<br>Platform fee (5%): <span style="color:var(--rd)">-${(j.deliveryComm||0).toLocaleString()} RWF</span><br>You earn: <strong style="color:var(--am)">${(j.pay||0).toLocaleString()} RWF</strong></div>
     </div>
     ${rl?`<div class="retload"><div style="font-size:18px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load available!</div><div class="retload-s">${rl.from} → ${rl.to} · ${rl.cargo} · +${rl.pay?.toLocaleString()} RWF extra</div></div></div>`:''}
     <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-a" onclick="acceptJob('${jid}')">Accept — ${((j.pay||0)+(rl?.pay||0)).toLocaleString()} RWF total</button></div>`;
@@ -1252,6 +1346,108 @@ window.saveProfile=async function(){
   toast('✅ Profile updated!');
 };
 
+
+// ═══════════════════════════════════════════════════
+// RATING SYSTEM — mutual ratings after every deal
+// ═══════════════════════════════════════════════════
+let _ratingJobId=null,_ratingContext=null,_selectedRating=0;
+
+window.showRatingModal=function(refId,context){
+  _ratingJobId=refId;_ratingContext=context;_selectedRating=0;
+  const titles={
+    'transporter_delivery':'Rate this delivery',
+    'farmer_deal':'Rate this farmer',
+    'broker_deal':'Rate this broker',
+    'transporter_deal':'Rate this transporter',
+  };
+  const subs={
+    'transporter_delivery':'How was the transporter? Your rating helps other farmers and brokers choose reliable transporters.',
+    'farmer_deal':'How was the farmer? Was the produce as described? On time?',
+    'broker_deal':'How was the broker? Professional, fair, and on time?',
+    'transporter_deal':'How was the transporter? Reliable and careful with your cargo?',
+  };
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">${titles[context]||'Leave a rating'}</div>
+    <div class="ms2">${subs[context]||'Your honest rating helps the whole community.'}</div>
+    <div class="rating-card">
+      <div style="text-align:center;margin-bottom:8px;">
+        <div class="star-row" style="justify-content:center;" id="star-row">
+          ${[1,2,3,4,5].map(n=>`<button class="star-btn" id="star-${n}" onclick="setRating(${n})">★</button>`).join('')}
+        </div>
+        <div id="rating-label" style="font-size:13px;color:var(--g5);margin-top:4px;">Tap a star to rate</div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Leave a review <span style="color:var(--g3);font-weight:400;">(optional but encouraged!)</span></label>
+      <textarea class="fi" id="rating-review" rows="3" placeholder="Describe your experience — it helps the community..."></textarea>
+    </div>
+    <div class="mact">
+      <button class="btn btn-og" onclick="closeModal()">Skip</button>
+      <button class="btn btn-g" onclick="submitRating()">Submit rating</button>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+};
+
+window.setRating=function(n){
+  _selectedRating=n;
+  const labels=['','Poor','Below average','Good','Very good','Excellent!'];
+  document.getElementById('rating-label').textContent=labels[n]||'';
+  for(let i=1;i<=5;i++){
+    const btn=document.getElementById('star-'+i);
+    if(btn)btn.classList.toggle('lit',i<=n);
+  }
+};
+
+window.submitRating=async function(){
+  if(!_selectedRating){toast('Please tap a star to rate.');return;}
+  const review=document.getElementById('rating-review')?.value.trim()||'';
+  try{
+    // Determine who is being rated based on context
+    let targetId=null,targetField=null;
+    if(_ratingContext==='transporter_delivery'){
+      const jSnap=await getDoc(doc(db,'jobs',_ratingJobId));
+      if(jSnap.exists()){targetId=jSnap.data().transporterId;targetField='transporter';}
+    } else if(_ratingContext==='farmer_deal'){
+      const oSnap=await getDoc(doc(db,'offers',_ratingJobId));
+      if(oSnap.exists()){targetId=oSnap.data().farmerId;targetField='farmer';}
+    } else if(_ratingContext==='broker_deal'){
+      const oSnap=await getDoc(doc(db,'offers',_ratingJobId));
+      if(oSnap.exists()){targetId=oSnap.data().brokerId;targetField='broker';}
+    }
+    // Save rating
+    await addDoc(collection(db,'ratings'),{
+      fromUid:S.user.uid,fromRole:S.role,
+      toUid:targetId,toRole:targetField,
+      refId:_ratingJobId,context:_ratingContext,
+      stars:_selectedRating,review,createdAt:serverTimestamp(),
+    });
+    // Update target user's average rating
+    if(targetId){
+      const ratingsSnap=await getDocs(query(collection(db,'ratings'),where('toUid','==',targetId)));
+      const allRatings=ratingsSnap.docs.map(d=>d.data().stars).filter(Boolean);
+      const avgRating=allRatings.reduce((a,b)=>a+b,0)/allRatings.length;
+      const completedDeals=allRatings.length;
+      await updateDoc(doc(db,'users',targetId),{
+        rating:Math.round(avgRating*10)/10,
+        reviews:allRatings.length,
+        completedDeals,
+      }).catch(()=>{});
+    }
+    closeModal();
+    toast('⭐ Rating submitted! Thank you.');
+    // Show rating prompt for the other party if applicable
+    if(_ratingContext==='transporter_delivery'&&S.role==='transporter'){
+      setTimeout(()=>showRatingModal(_ratingJobId,'broker_deal'),500);
+    }
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+// Trigger rating prompts after offer accepted (for farmer to rate broker later)
+function triggerPostDealRatings(offerId){
+  if(S.role==='farmer'){
+    setTimeout(()=>showRatingModal(offerId,'broker_deal'),1000);
+  }
+}
+
 // ─── HELPERS ───
 function lcard(l,viewer){
   if(!window._lc)window._lc=[];if(!window._lc.find(x=>x.id===l.id))window._lc.push(l);
@@ -1273,7 +1469,11 @@ function lcard(l,viewer){
       <div class="linfo">
         <div class="ln">${l.crop}</div>
         <div class="lm">${l.loc} · <span class="qty-avail">${avail.toLocaleString()} kg available</span> · Ready ${dt}</div>
-        <div style="margin-top:5px;">${stat}</div>
+        <div style="margin-top:5px;">${stat}
+          ${l.trustedSeller?'<span class="qbadge qbadge-trust">⭐ Trusted Seller</span>':''}
+          ${l.photoVerified?'<span class="qbadge qbadge-photo">📷 Photo Verified</span>':''}
+          ${(l.qty>=2000||(l.price*l.qty)>=500000)?'<span class="qbadge qbadge-aqa">🔍 AQA eligible</span>':''}
+        </div>
       </div>
       <div class="lp"><div class="lamt">${l.price}</div><div class="lunit">RWF/kg</div></div>
     </div>
@@ -1323,7 +1523,16 @@ async function loadChatList(){
 
     // Query chats where this user is farmer OR broker
     const field=S.role==='farmer'?'farmerId':'brokerId';
-    const snap=await getDocs(query(collection(db,'chats'),where(field,'==',S.user.uid)));
+    // Try the query — if it fails due to rules, fallback to full collection scan
+    let snap;
+    try{
+      snap=await getDocs(query(collection(db,'chats'),where(field,'==',S.user.uid)));
+    }catch(queryErr){
+      console.warn('Chat query fallback:',queryErr.message);
+      const allSnap=await getDocs(collection(db,'chats'));
+      const filtered=allSnap.docs.filter(d=>{const data=d.data();return data.farmerId===S.user.uid||data.brokerId===S.user.uid;});
+      snap={docs:filtered};
+    }
     const chats=snap.docs.map(d=>({id:d.id,...d.data()}));
 
     let html='';
