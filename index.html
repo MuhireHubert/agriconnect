@@ -1521,19 +1521,12 @@ async function loadChatList(){
     const adminMsgs=adminMsgsSnap.docs.map(d=>({id:d.id,...d.data()}));
     const unreadAdmin=adminMsgs.filter(m=>!m.read);
 
-    // Query chats where this user is farmer OR broker
-    const field=S.role==='farmer'?'farmerId':'brokerId';
-    // Try the query — if it fails due to rules, fallback to full collection scan
-    let snap;
-    try{
-      snap=await getDocs(query(collection(db,'chats'),where(field,'==',S.user.uid)));
-    }catch(queryErr){
-      console.warn('Chat query fallback:',queryErr.message);
-      const allSnap=await getDocs(collection(db,'chats'));
-      const filtered=allSnap.docs.filter(d=>{const data=d.data();return data.farmerId===S.user.uid||data.brokerId===S.user.uid;});
-      snap={docs:filtered};
-    }
-    const chats=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Load all chats and filter client-side — avoids index requirement entirely
+    const allChatsSnap=await getDocs(collection(db,'chats'));
+    const chats=allChatsSnap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .filter(c=>c.farmerId===S.user.uid||c.brokerId===S.user.uid)
+      .sort((a,b)=>(b.lastAt?.seconds||0)-(a.lastAt?.seconds||0));
 
     let html='';
 
@@ -1578,6 +1571,7 @@ async function loadChatList(){
         <div style="font-size:12px;color:var(--g3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.lastMessage||'No messages yet'}</div>
       </div>`;
     }).join('');
+    cont.innerHTML=html;
   }catch(e){
     console.error('loadChatList error:',e);
     cont.innerHTML=`<div class="empty">Error loading chats.<br><small style="color:var(--rd)">${e.message}</small></div>`;
