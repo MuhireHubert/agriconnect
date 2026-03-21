@@ -318,7 +318,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
             <option value="kigali">Kigali City</option>
           </select>
         </div>
-        <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--rd);margin-bottom:13px;">🔒 Credentials issued exclusively by Hub-In Rwanda. Contact <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1d7c797074735d75687f307473336f6a">[email&#160;protected]</a></div>
+        <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--rd);margin-bottom:13px;">🔒 Credentials issued exclusively by Hub-In Rwanda. Contact admin@hub-in.rw</div>
         <button class="abtn abtn-r" onclick="doGovtLogin()">Access portal</button>
       </div>
 
@@ -346,7 +346,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
 <div class="mback" id="modal" onclick="closeModal(event)"><div class="mbox" id="modal-content"></div></div>
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
+<script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import{getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,updateDoc,deleteDoc,query,where,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -516,11 +516,17 @@ const WFP_VULN={eastern:52,western:61,northern:48,southern:58,kigali:32};
 async function calcFamineScore(province,platformListings){
   const coords=PROV_COORDS[province];
   let rainfallScore=50,yieldScore=50,supplyScore=50,vulnScore=WFP_VULN[province]||50;
+  let nasaLive=false,avgRainfall=null,recentRainfall=null;
 
-  // NASA rainfall
+  // NASA rainfall — live satellite data
   if(coords){
     const nasa=await fetchNASARainfall(coords.lat,coords.lon);
-    if(nasa)rainfallScore=Math.min(100,Math.round(nasa.deficit*100));
+    if(nasa){
+      rainfallScore=Math.min(100,Math.round(nasa.deficit*100));
+      nasaLive=true;
+      avgRainfall=nasa.avg;
+      recentRainfall=nasa.recentAvg;
+    }
   }
 
   // Supply score from platform listings
@@ -712,7 +718,13 @@ function enterApp(){
   document.getElementById('bnav').innerHTML=conf.nav.map(n=>
     `<button class="bn" id="bn-${n.id}" onclick="showScr('${n.id}')"><span class="ni">${n.i}</span><span class="nl">${t(n.k)||n.k}</span></button>`
   ).join('');
-  showPage('pg-app');showScr(conf.nav[0].id);
+  showPage('pg-app');
+  // Show onboarding on first login
+  if(!S.profile.onboarded){
+    setTimeout(()=>showOnboarding(),400);
+  }else{
+    showScr(conf.nav[0].id);
+  }
 }
 
 // ─── SCREEN ROUTER ───
@@ -1157,7 +1169,7 @@ window.openOfferModal=async function(lid){
       <div class="fg" id="transport-pay-fg">
         <label class="fl">Proposed transport pay (RWF total) <span style="color:var(--g3);font-weight:400;">— transporters can counter-negotiate</span></label>
         <input class="fi" id="mo-tpay" type="number" placeholder="e.g. 45000" min="0" oninput="calcOfferTotal()" inputmode="numeric">
-        <div style="font-size:11px;color:var(--g5);margin-top:4px;">Suggested: ~${Math.round((fresh?.qty||1000)*30).toLocaleString()} RWF (30 RWF/kg estimate)</div>
+        <div style="font-size:11px;color:var(--g5);margin-top:4px;">Suggested: ~${Math.round((avail||1000)*30).toLocaleString()} RWF (30 RWF/kg estimate)</div>
       </div>
       <div id="offer-total" style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--g5);margin-bottom:4px;"></div>
       <div class="mact">
@@ -2007,8 +2019,8 @@ function jcard(j){
         <div style="font-size:10px;color:var(--g3);margin-top:2px;">after 5% platform fee</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <button class="btn btn-oa btn-sm" onclick="openTransportCounterModal('${j.id}','${j.grossPay||j.pay||0}')">💬 Counter</button>
-        <button class="btn btn-a btn-sm" onclick="openJobModal('${j.id}')">Accept</button>
+        <button class="btn btn-a btn-sm" onclick="openJobModal('${j.id}')">View & Accept</button>
+        <button class="btn btn-oa btn-sm" onclick="openTransportCounterModal('${j.id}','${j.grossPay||j.pay||0}')">Counter</button>
       </div>
     </div>
   </div>`;}
@@ -2245,6 +2257,16 @@ window.sendMsg=async function(chatId){
 };
 
 // ── START CHAT FROM A LISTING (broker initiates) ──
+// Open chat from offer ID — gets correct farmerId/brokerId from offer document
+window.openChatFromOffer=async function(offerId){
+  try{
+    const oSnap=await getDoc(doc(db,'offers',offerId));
+    if(!oSnap.exists()){toast('Offer not found.');return;}
+    const o=oSnap.data();
+    await openChatFromListing(o.listingId,o.farmerId,o.farmerName,o.cropName);
+  }catch(e){toast('❌ Could not open chat: '+e.message);}
+};
+
 window.openChatFromListing=async function(listingId,farmerId,farmerName,cropName){
   if(!S.user){toast('Please log in first.');return;}
   const chatId=makeChatId(listingId,S.user.uid);
@@ -2532,4 +2554,441 @@ window.viewDealJobCounters_byOffer=async function(offerId){
 
 window.closeModal=function(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');};
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
-function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'jus
+function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+
+// Boot — show landing immediately, no waiting for Firebase
+showPage('pg-land');
+
+// ═══════════════════════════════════════════════════
+// ONBOARDING — first-time guide for each role
+// ═══════════════════════════════════════════════════
+const ONBOARDING_STEPS = {
+  farmer: [
+    {icon:'🌾', title:'Welcome, Farmer!', body:'AgriConnect connects you directly to brokers across Rwanda — no middlemen eating your profit. You set the price, you choose who you sell to.'},
+    {icon:'📸', title:'Post your produce', body:'Tap the + Post tab to list your harvest. Add photos for a Photo Verified badge — listings with photos get 3x more offers.'},
+    {icon:'📬', title:'Receive & negotiate offers', body:'Brokers will send you offers. You can Accept, Counter-offer with your own price, or Decline. You are always in control.'},
+    {icon:'⭐', title:'Build your reputation', body:'After every deal, rate your broker and earn ratings yourself. 3 deals with 4.5★+ earns you the Trusted Seller badge — brokers trust you more.'},
+    {icon:'💬', title:'Chat safely', body:'Message brokers directly in the Chat tab. Phone numbers are blocked — all deals stay on the platform for your protection.'},
+  ],
+  broker: [
+    {icon:'🤝', title:'Welcome, Broker!', body:'AgriConnect gives you direct access to hundreds of Rwandan farmers. Browse live listings, negotiate prices, and confirm deals in minutes.'},
+    {icon:'🔍', title:'Browse & filter listings', body:'Use the Browse tab to find produce by crop type. Look for ⭐ Trusted Seller and 📷 Photo Verified badges for confident buying.'},
+    {icon:'💰', title:'Make smart offers', body:'Propose your price and quantity. You can negotiate — and farmers can counter-offer back. The 3% commission is only charged on confirmed deals.'},
+    {icon:'🔍', title:'Quality assurance', body:'For large orders (2t+ or 500k+ RWF), you can request an AQA field inspection. Our agent visits the farm, sends you a graded report, then you confirm.'},
+    {icon:'🚛', title:'Transport negotiation', body:'After a deal is confirmed, a transport job is created. You propose the pay rate — transporters can accept or counter-propose. You pick the best offer.'},
+  ],
+  transporter: [
+    {icon:'🚛', title:'Welcome, Transporter!', body:'AgriConnect matches you with cargo jobs across Rwanda. No more driving empty — our return load matching earns you up to 40% more per trip.'},
+    {icon:'📦', title:'Browse open jobs', body:'The Jobs tab shows all available cargo runs. Filter by location. Jobs show full route, cargo weight, and proposed pay before you commit.'},
+    {icon:'💬', title:'Negotiate your rate', body:'Not happy with the proposed pay? Tap Counter on any job and propose your rate. The broker reviews all proposals and picks the best offer.'},
+    {icon:'🔄', title:'Return load matching', body:'Jobs marked 🔄 have cargo available for the return trip. Accept both directions and nearly double your earnings on the same fuel.'},
+    {icon:'⭐', title:'Earn ratings', body:'Farmers and brokers rate you after each delivery. A strong rating means you get offered the best jobs first.'},
+  ],
+};
+
+let _onboardStep=0, _onboardRole=null;
+
+window.showOnboarding=function(){
+  _onboardRole=S.role;
+  _onboardStep=0;
+  renderOnboardStep();
+};
+
+function renderOnboardStep(){
+  const steps=ONBOARDING_STEPS[_onboardRole];
+  if(!steps){showScr(document.querySelector('.bn')?.id?.replace('bn-','')||'home');return;}
+  const s=steps[_onboardStep];
+  const isLast=_onboardStep===steps.length-1;
+  document.getElementById('modal-content').innerHTML=`
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div style="font-size:52px;margin-bottom:14px;">${s.icon}</div>
+      <div style="font-size:20px;font-weight:700;color:var(--g9);font-family:'DM Serif Display',serif;margin-bottom:8px;">${s.title}</div>
+      <div style="font-size:14px;color:var(--g5);line-height:1.65;margin-bottom:20px;">${s.body}</div>
+      <!-- Progress dots -->
+      <div style="display:flex;justify-content:center;gap:6px;margin-bottom:20px;">
+        ${steps.map((_,i)=>`<div style="width:${i===_onboardStep?20:7}px;height:7px;border-radius:4px;background:${i===_onboardStep?'var(--gm)':'var(--g1)'};transition:all 0.3s;"></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px;">
+        ${_onboardStep>0?`<button class="btn btn-og" style="flex:1;" onclick="onboardBack()">← Back</button>`:'<div style="flex:1;"></div>'}
+        <button class="btn btn-g" style="flex:2;" onclick="${isLast?'finishOnboarding()':'onboardNext()'}">${isLast?'Get started 🌾':'Next →'}</button>
+      </div>
+      <button onclick="finishOnboarding()" style="background:none;border:none;color:var(--g3);font-size:12px;margin-top:12px;cursor:pointer;display:block;width:100%;">Skip intro</button>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+window.onboardNext=function(){
+  const steps=ONBOARDING_STEPS[_onboardRole]||[];
+  if(_onboardStep<steps.length-1){_onboardStep++;renderOnboardStep();}
+};
+window.onboardBack=function(){
+  if(_onboardStep>0){_onboardStep--;renderOnboardStep();}
+};
+window.finishOnboarding=async function(){
+  document.getElementById('modal').classList.remove('open');
+  // Mark user as onboarded so they don't see it again
+  if(S.user){
+    await updateDoc(doc(db,'users',S.user.uid),{onboarded:true}).catch(()=>{});
+    S.profile.onboarded=true;
+  }
+  showScr(document.querySelector('.bn')?.id?.replace('bn-','')||'home');
+};
+
+// ═══════════════════════════════════════════════════
+// MTN MOBILE MONEY — Collection API
+// ═══════════════════════════════════════════════════
+// IMPORTANT: Replace these with your real sandbox credentials
+const MOMO_CONFIG = {
+  // ── Sandbox ──────────────────────────────────────────────────────────
+  // Token URL:   https://sandbox.momodeveloper.mtn.com/collection/token/
+  // Pay URL:     https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay
+  // Status URL:  https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay/{id}
+  // ─────────────────────────────────────────────────────────────────────
+  tokenUrl:      'https://sandbox.momodeveloper.mtn.com/collection/token/',
+  collectionUrl: 'https://sandbox.momodeveloper.mtn.com/collection/v1_0',
+  subscriptionKey: 'YOUR_COLLECTION_SUBSCRIPTION_KEY', // Ocp-Apim-Subscription-Key (from Products page)
+  apiUser:         'YOUR_API_USER_UUID',               // UUID you created via POST /v1_0/apiuser
+  apiKey:          'YOUR_API_KEY',                     // from POST /v1_0/apiuser/{id}/apikey
+  currency:        'EUR',                              // sandbox = EUR | production Rwanda = RWF
+  environment:     'sandbox',                         // sandbox | production
+};
+
+// ── Step 1: Get OAuth2 Bearer token ──────────────────────────────────────────
+// POST /collection/token/
+// Headers required:
+//   Authorization:              Basic base64(apiUser:apiKey)
+//   Ocp-Apim-Subscription-Key:  your subscription key
+//   X-Target-Environment:       sandbox | production
+async function getMoMoToken(){
+  const credentials = btoa(`${MOMO_CONFIG.apiUser}:${MOMO_CONFIG.apiKey}`);
+  const res = await fetch(MOMO_CONFIG.tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization':             `Basic ${credentials}`,
+      'Ocp-Apim-Subscription-Key': MOMO_CONFIG.subscriptionKey,
+      'X-Target-Environment':      MOMO_CONFIG.environment,
+      'Content-Type':              'application/json',
+    },
+  });
+  if(!res.ok){
+    const err = await res.text().catch(()=>'');
+    throw new Error(`MoMo token failed (${res.status}): ${err}`);
+  }
+  const data = await res.json();
+  if(!data.access_token) throw new Error('MoMo token response missing access_token');
+  return data.access_token;
+}
+
+// ── Step 2: Request payment from payer's phone ────────────────────────────────
+// POST /collection/v1_0/requesttopay
+// Required headers:
+//   Authorization: Bearer {token}          ← from getMoMoToken()
+//   Ocp-Apim-Subscription-Key              ← your subscription key
+//   X-Reference-Id: {uuid}                 ← unique ID you generate for this payment
+//   X-Target-Environment: sandbox|production
+//   Content-Type: application/json
+// Optional headers:
+//   X-Callback-Url                         ← URL to receive payment status webhook
+window.requestMoMoPayment=async function(amountRWF, payerPhone, referenceId, description){
+  // ── Simulation mode when no real keys added yet ──
+  if(MOMO_CONFIG.subscriptionKey==='YOUR_COLLECTION_SUBSCRIPTION_KEY'){
+    toast('💳 MoMo payment simulated — add your API keys to go live.');
+    await addDoc(collection(db,'payments'),{
+      referenceId:referenceId||'sim_'+Date.now(),
+      payerPhone,amountRWF,description,
+      status:'simulated',createdAt:serverTimestamp(),
+    });
+    return{simulated:true};
+  }
+  try{
+    const token=await getMoMoToken();
+    const externalId=referenceId||crypto.randomUUID();
+    // Normalise phone to MSISDN format: 250XXXXXXXXX (no + prefix)
+    const msisdn=payerPhone.replace(/\D/g,'').replace(/^250/,'').replace(/^0/,'');
+    const fullPhone='250'+msisdn;
+
+    const res=await fetch(`${MOMO_CONFIG.collectionUrl}/requesttopay`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${token}`,
+        'Content-Type':'application/json',
+        'Ocp-Apim-Subscription-Key':MOMO_CONFIG.subscriptionKey,
+        'X-Reference-Id':externalId,
+        'X-Target-Environment':MOMO_CONFIG.environment,
+        // Optional: uncomment and set your webhook URL to receive status updates automatically
+        // 'X-Callback-Url':'https://agri-ussd.YOUR-ACCOUNT.workers.dev/momo-callback',
+      },
+      body:JSON.stringify({
+        amount:String(amountRWF),
+        currency:MOMO_CONFIG.currency,   // 'EUR' in sandbox, 'RWF' in production
+        externalId,
+        payer:{partyIdType:'MSISDN', partyId:fullPhone},
+        payerMessage:description||'AgriConnect payment',
+        payeeNote:'AgriConnect — Hub-In Rwanda',
+      }),
+    });
+
+    // 202 Accepted = request received, payment pending on phone
+    if(res.status!==202){
+      const errBody=await res.text().catch(()=>'');
+      throw new Error(`MoMo requesttopay failed (${res.status}): ${errBody}`);
+    }
+
+    await addDoc(collection(db,'payments'),{
+      referenceId:externalId,payerPhone:fullPhone,
+      amountRWF,description,status:'pending',
+      createdAt:serverTimestamp(),
+    });
+
+    // Poll for status after 5 seconds (phone user needs time to approve on their handset)
+    setTimeout(()=>checkMoMoStatus(externalId,null),5000);
+    toast('📱 MoMo prompt sent to +'+fullPhone+'. Ask payer to approve on their phone.');
+    return{referenceId:externalId,status:'pending'};
+  }catch(e){
+    toast('❌ MoMo error: '+e.message);
+    console.error('MoMo payment:',e);
+    throw e;
+  }
+};
+
+// ── Step 3: Check payment status ─────────────────────────────────────────────
+// GET /collection/v1_0/requesttopay/{referenceId}
+// Required headers:
+//   Authorization: Bearer {token}
+//   Ocp-Apim-Subscription-Key
+//   X-Target-Environment
+// Returns status: PENDING | SUCCESSFUL | FAILED
+async function checkMoMoStatus(referenceId, token){
+  try{
+    if(!token)token=await getMoMoToken();
+    const res=await fetch(`${MOMO_CONFIG.collectionUrl}/requesttopay/${referenceId}`,{
+      method:'GET',
+      headers:{
+        'Authorization':`Bearer ${token}`,
+        'Ocp-Apim-Subscription-Key':MOMO_CONFIG.subscriptionKey,
+        'X-Target-Environment':MOMO_CONFIG.environment,
+      },
+    });
+    if(!res.ok){console.warn('MoMo status check failed:',res.status);return;}
+    const data=await res.json();
+
+    // Update Firestore payment record
+    const snap=await getDocs(query(collection(db,'payments'),where('referenceId','==',referenceId)));
+    if(!snap.empty){
+      await updateDoc(doc(db,'payments',snap.docs[0].id),{
+        status:data.status?.toLowerCase()||'unknown',
+        momoReason:data.reason||null,
+        updatedAt:serverTimestamp(),
+      });
+    }
+
+    if(data.status==='SUCCESSFUL'){
+      toast('✅ MTN MoMo payment confirmed!');
+      logEvent(analytics,'payment_confirmed',{referenceId});
+    }else if(data.status==='FAILED'){
+      toast('❌ MoMo payment failed. Reason: '+(data.reason||'unknown'));
+    }else{
+      // PENDING — check again in 10 seconds (max ~60s before giving up)
+      setTimeout(()=>checkMoMoStatus(referenceId,null),10000);
+    }
+    return data.status;
+  }catch(e){console.error('MoMo status check:',e);}
+}
+
+// Pay transport commission via MoMo
+window.payTransportCommission=async function(jobId){
+  const jSnap=await getDoc(doc(db,'jobs',jobId));
+  if(!jSnap.exists())return;
+  const j=jSnap.data();
+  if(!j.transporterId){toast('No transporter assigned yet.');return;}
+  const tSnap=await getDoc(doc(db,'users',j.transporterId));
+  const transporter=tSnap.exists()?tSnap.data():{};
+  const phone=transporter.momo||transporter.phone;
+  if(!phone){toast('Transporter has no MoMo number registered.');return;}
+  await requestMoMoPayment(j.pay,phone,jobId,`AgriConnect delivery payment: ${j.cargo}`);
+};
+
+// ═══════════════════════════════════════════════════
+// AFRICA'S TALKING — SMS Notifications
+// ═══════════════════════════════════════════════════
+const AT_CONFIG = {
+  apiKey: 'YOUR_AFRICASTALKING_API_KEY',   // replace with your real key
+  username: 'YOUR_USERNAME',               // your Africa's Talking app name
+  senderId: 'AgriConnect',                 // your registered sender ID (or leave blank for sandbox)
+  sandbox: true,                           // set to false in production
+};
+
+// Core SMS send function — called by all notification types
+async function sendSMS(to, message){
+  // Normalise phone
+  const clean=to.replace(/\D/g,'').replace(/^250/,'').replace(/^0/,'');
+  const phone='+250'+clean;
+
+  if(AT_CONFIG.apiKey==='YOUR_AFRICASTALKING_API_KEY'){
+    // Simulation — log to Firestore, no real SMS sent
+    console.log('[SMS SIM]',phone,':',message);
+    await addDoc(collection(db,'sms_log'),{to:phone,message,status:'simulated',createdAt:serverTimestamp()}).catch(()=>{});
+    return{simulated:true};
+  }
+
+  const endpoint=AT_CONFIG.sandbox
+    ?'https://api.sandbox.africastalking.com/version1/messaging'
+    :'https://api.africastalking.com/version1/messaging';
+
+  const params=new URLSearchParams({
+    username:AT_CONFIG.username,
+    to:phone,
+    message:message.slice(0,160), // SMS max 160 chars
+    ...(AT_CONFIG.senderId&&{from:AT_CONFIG.senderId}),
+  });
+
+  const res=await fetch(endpoint,{
+    method:'POST',
+    headers:{
+      'apiKey':AT_CONFIG.apiKey,
+      'Content-Type':'application/x-www-form-urlencoded',
+      'Accept':'application/json',
+    },
+    body:params.toString(),
+  });
+  const data=await res.json();
+  await addDoc(collection(db,'sms_log'),{to:phone,message,status:res.ok?'sent':'failed',response:JSON.stringify(data),createdAt:serverTimestamp()}).catch(()=>{});
+  return data;
+}
+
+// Notification triggers — called automatically at key events
+
+// 1. When farmer receives a new offer
+async function notifyFarmerNewOffer(farmerPhone, brokerName, cropName, qty, price){
+  const msg=`AGRICONNECT: New offer from ${brokerName} for ${qty}kg of ${cropName} at ${price} RWF/kg. Open AgriConnect to accept or negotiate.`;
+  await sendSMS(farmerPhone, msg).catch(e=>console.error('SMS:',e));
+}
+
+// 2. When broker's offer is accepted
+async function notifyBrokerOfferAccepted(brokerPhone, farmerName, cropName, qty){
+  const msg=`AGRICONNECT: ${farmerName} accepted your offer for ${qty}kg of ${cropName}. A transport job has been created. Login to track your deal.`;
+  await sendSMS(brokerPhone, msg).catch(e=>console.error('SMS:',e));
+}
+
+// 3. When broker's offer is declined
+async function notifyBrokerOfferDeclined(brokerPhone, cropName){
+  const msg=`AGRICONNECT: Your offer for ${cropName} was declined. Browse new listings and try again at agriconnect.rw`;
+  await sendSMS(brokerPhone, msg).catch(e=>console.error('SMS:',e));
+}
+
+// 4. When farmer counter-offers
+async function notifyBrokerCounterOffer(brokerPhone, cropName, newPrice){
+  const msg=`AGRICONNECT: The farmer counter-offered ${newPrice} RWF/kg for ${cropName}. Login to accept or decline.`;
+  await sendSMS(brokerPhone, msg).catch(e=>console.error('SMS:',e));
+}
+
+// 5. When a transport job is available
+async function notifyTransportersNewJob(from, to, cargo, pay){
+  // In production: query transporters in the region and SMS each one
+  console.log('[SMS] New job notification:',from,'→',to,cargo,pay,'RWF');
+}
+
+// 6. When transporter is confirmed on a job
+async function notifyTransporterJobConfirmed(transporterPhone, from, to, cargo, pay){
+  const msg=`AGRICONNECT: Job confirmed! ${cargo} from ${from} to ${to}. Your pay: ${pay.toLocaleString()} RWF. Go to Active tab for pickup details.`;
+  await sendSMS(transporterPhone, msg).catch(e=>console.error('SMS:',e));
+}
+
+// 7. When delivery is confirmed
+async function notifyDeliveryComplete(farmerPhone, brokerPhone, cropName, qty){
+  const msg=`AGRICONNECT: Delivery confirmed! ${qty}kg of ${cropName} delivered. Payment will be processed via MTN MoMo shortly.`;
+  await Promise.all([
+    sendSMS(farmerPhone, msg).catch(()=>{}),
+    sendSMS(brokerPhone, msg.replace('Payment will be processed via MTN MoMo shortly.','Please confirm quality in the app.')).catch(()=>{}),
+  ]);
+}
+
+// 8. AQA inspection scheduled
+async function notifyFarmerAQAScheduled(farmerPhone, crop){
+  const msg=`AGRICONNECT: An AgriConnect quality agent will visit your farm within 48 hours to inspect your ${crop}. Please ensure produce is ready for inspection.`;
+  await sendSMS(farmerPhone, msg).catch(e=>console.error('SMS:',e));
+}
+
+// Wire SMS into existing functions
+const _origSubmitOffer=window.submitOffer;
+window.submitOffer=async function(lid,farmerId,cropName,farmerName,maxAvail){
+  await _origSubmitOffer.apply(this,arguments);
+  // Notify farmer
+  try{
+    const fSnap=await getDoc(doc(db,'users',farmerId));
+    if(fSnap.exists()){
+      const farmer=fSnap.data();
+      const price=parseFloat(document.getElementById('mo-p')?.value)||0;
+      const qty=parseFloat(document.getElementById('mo-q')?.value)||0;
+      await notifyFarmerNewOffer(farmer.phone,S.profile.fname,cropName,qty,price);
+    }
+  }catch(e){console.error('SMS notify offer:',e);}
+};
+
+const _origAcceptOffer=window.acceptOffer;
+window.acceptOffer=async function(oid){
+  await _origAcceptOffer.apply(this,arguments);
+  // Notify broker
+  try{
+    const oSnap=await getDoc(doc(db,'offers',oid));
+    if(oSnap.exists()){
+      const o=oSnap.data();
+      const bSnap=await getDoc(doc(db,'users',o.brokerId));
+      if(bSnap.exists()){
+        await notifyBrokerOfferAccepted(bSnap.data().phone,S.profile.fname,o.cropName,o.qty);
+      }
+      if(o.aqaRequested){
+        await notifyFarmerAQAScheduled(S.profile.phone,o.cropName);
+      }
+    }
+  }catch(e){console.error('SMS notify accept:',e);}
+};
+
+const _origDeclineOffer=window.declineOffer;
+window.declineOffer=async function(oid){
+  const oSnap=await getDoc(doc(db,'offers',oid)).catch(()=>null);
+  await _origDeclineOffer.apply(this,arguments);
+  try{
+    if(oSnap?.exists()){
+      const o=oSnap.data();
+      const bSnap=await getDoc(doc(db,'users',o.brokerId));
+      if(bSnap.exists()) await notifyBrokerOfferDeclined(bSnap.data().phone,o.cropName);
+    }
+  }catch(e){console.error('SMS notify decline:',e);}
+};
+
+const _origSubmitCounter=window.submitCounterOffer;
+window.submitCounterOffer=async function(oid,qty){
+  await _origSubmitCounter.apply(this,arguments);
+  try{
+    const oSnap=await getDoc(doc(db,'offers',oid));
+    if(oSnap.exists()){
+      const o=oSnap.data();
+      const bSnap=await getDoc(doc(db,'users',o.brokerId));
+      const price=parseFloat(document.getElementById('co-price')?.value)||0;
+      if(bSnap.exists()) await notifyBrokerCounterOffer(bSnap.data().phone,o.cropName,price);
+    }
+  }catch(e){console.error('SMS notify counter:',e);}
+};
+
+const _origMarkDelivered=window.markDelivered;
+window.markDelivered=async function(jid){
+  const jSnap=await getDoc(doc(db,'jobs',jid)).catch(()=>null);
+  await _origMarkDelivered.apply(this,arguments);
+  try{
+    if(jSnap?.exists()){
+      const j=jSnap.data();
+      const [fSnap,bSnap]=await Promise.all([
+        getDoc(doc(db,'users',j.farmerId)).catch(()=>null),
+        getDoc(doc(db,'users',j.brokerId)).catch(()=>null),
+      ]);
+      if(fSnap?.exists()&&bSnap?.exists()){
+        await notifyDeliveryComplete(fSnap.data().phone,bSnap.data().phone,j.crop,j.qty);
+      }
+    }
+  }catch(e){console.error('SMS notify delivery:',e);}
+};
+
+</script>
+</body>
+</html>
