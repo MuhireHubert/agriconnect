@@ -963,6 +963,11 @@ window.acceptOffer=async function(oid){
       toast('✅ Offer accepted! Transport job is now open for transporters.');
     }
     logEvent(analytics,'offer_accepted',{amount:totalValue,aqa:o.aqaRequested||false});
+    // SMS: notify broker + AQA farmer
+    getDoc(doc(db,'users',o.brokerId)).then(bSnap=>{
+      if(bSnap.exists()) notifyBrokerOfferAccepted(bSnap.data().phone,S.profile.fname,o.cropName,o.qty).catch(()=>{});
+    }).catch(()=>{});
+    if(o.aqaRequested) notifyFarmerAQAScheduled(S.profile.phone,o.cropName).catch(()=>{});
     setTimeout(()=>showRatingModal(oid,'broker_deal'),1500);
     loadOffers();
   }catch(e){toast('❌ Error: '+e.message);console.error('acceptOffer:',e);}
@@ -993,6 +998,10 @@ window.declineOffer=async function(oid){
   const odSnap=await getDoc(doc(db,'offers',oid));
   if(odSnap.exists()){const od=odSnap.data();try{const ldSnap=await getDoc(doc(db,'listings',od.listingId));if(ldSnap.exists()){const cur=ldSnap.data().reserved||0;await updateDoc(doc(db,'listings',od.listingId),{reserved:Math.max(0,cur-od.qty)});}}catch(e){}}
   await updateDoc(doc(db,'offers',oid),{status:'declined'});
+  // SMS: notify broker
+  odSnap?.data && getDoc(doc(db,'users',odSnap.data().brokerId)).then(bSnap=>{
+    if(bSnap.exists()) notifyBrokerOfferDeclined(bSnap.data().phone,odSnap.data().cropName).catch(()=>{});
+  }).catch(()=>{});
   logEvent(analytics,'offer_declined');toast('Offer declined.');loadOffers();
 };
 
@@ -1274,6 +1283,10 @@ window.submitOffer=async function(lid,farmerId,cropName,farmerName,maxAvail){
       });
     }
     logEvent(analytics,'offer_made',{crop:cropName,price,qty,aqa:aqaRequested});
+    // SMS: notify farmer
+    getDoc(doc(db,'users',farmerId)).then(fSnap=>{
+      if(fSnap.exists()) notifyFarmerNewOffer(fSnap.data().phone,S.profile.fname,cropName,qty,price).catch(()=>{});
+    }).catch(()=>{});
     closeModal();
     toast(aqaRequested
       ?'✅ Offer sent with AQA request! Farmer will be notified. Our agent will visit the farm within 48 hours.'
@@ -1366,6 +1379,17 @@ window.markDelivered=async function(jid){
     await addDoc(collection(db,'transactions'),{type:'delivery_commission',jobId:jid,transporterId:j.transporterId||S.user.uid,amount:j.deliveryComm||0,commission:j.deliveryComm||0,status:'confirmed',createdAt:serverTimestamp()}).catch(()=>{});
   }
   logEvent(analytics,'job_delivered');
+  // SMS: notify farmer and broker
+  const jd=jSnap.exists?jSnap.data():{};
+  if(jd.farmerId&&jd.brokerId){
+    Promise.all([
+      getDoc(doc(db,'users',jd.farmerId)).catch(()=>null),
+      getDoc(doc(db,'users',jd.brokerId)).catch(()=>null),
+    ]).then(([fSnap,bSnap])=>{
+      if(fSnap?.exists()&&bSnap?.exists())
+        notifyDeliveryComplete(fSnap.data().phone,bSnap.data().phone,jd.crop,jd.qty).catch(()=>{});
+    }).catch(()=>{});
+  }
   // Trigger rating modal
   showRatingModal(jid,'transporter_delivery');
 };
@@ -2386,6 +2410,14 @@ window.submitCounterOffer=async function(oid,qty){
       counterMsg:msg,
       counteredAt:serverTimestamp(),
     });
+    // SMS: notify broker of counter
+    getDoc(doc(db,'offers',oid)).then(oSnap=>{
+      if(!oSnap.exists())return;
+      const o=oSnap.data();
+      getDoc(doc(db,'users',o.brokerId)).then(bSnap=>{
+        if(bSnap.exists()) notifyBrokerCounterOffer(bSnap.data().phone,o.cropName,price).catch(()=>{});
+      }).catch(()=>{});
+    }).catch(()=>{});
     closeModal();
     toast('✅ Counter offer sent! The broker will be notified.');
     loadOffers();
@@ -2909,85 +2941,7 @@ async function notifyFarmerAQAScheduled(farmerPhone, crop){
   await sendSMS(farmerPhone, msg).catch(e=>console.error('SMS:',e));
 }
 
-// Wire SMS into existing functions
-const _origSubmitOffer=window.submitOffer;
-window.submitOffer=async function(lid,farmerId,cropName,farmerName,maxAvail){
-  await _origSubmitOffer.apply(this,arguments);
-  // Notify farmer
-  try{
-    const fSnap=await getDoc(doc(db,'users',farmerId));
-    if(fSnap.exists()){
-      const farmer=fSnap.data();
-      const price=parseFloat(document.getElementById('mo-p')?.value)||0;
-      const qty=parseFloat(document.getElementById('mo-q')?.value)||0;
-      await notifyFarmerNewOffer(farmer.phone,S.profile.fname,cropName,qty,price);
-    }
-  }catch(e){console.error('SMS notify offer:',e);}
-};
-
-const _origAcceptOffer=window.acceptOffer;
-window.acceptOffer=async function(oid){
-  await _origAcceptOffer.apply(this,arguments);
-  // Notify broker
-  try{
-    const oSnap=await getDoc(doc(db,'offers',oid));
-    if(oSnap.exists()){
-      const o=oSnap.data();
-      const bSnap=await getDoc(doc(db,'users',o.brokerId));
-      if(bSnap.exists()){
-        await notifyBrokerOfferAccepted(bSnap.data().phone,S.profile.fname,o.cropName,o.qty);
-      }
-      if(o.aqaRequested){
-        await notifyFarmerAQAScheduled(S.profile.phone,o.cropName);
-      }
-    }
-  }catch(e){console.error('SMS notify accept:',e);}
-};
-
-const _origDeclineOffer=window.declineOffer;
-window.declineOffer=async function(oid){
-  const oSnap=await getDoc(doc(db,'offers',oid)).catch(()=>null);
-  await _origDeclineOffer.apply(this,arguments);
-  try{
-    if(oSnap?.exists()){
-      const o=oSnap.data();
-      const bSnap=await getDoc(doc(db,'users',o.brokerId));
-      if(bSnap.exists()) await notifyBrokerOfferDeclined(bSnap.data().phone,o.cropName);
-    }
-  }catch(e){console.error('SMS notify decline:',e);}
-};
-
-const _origSubmitCounter=window.submitCounterOffer;
-window.submitCounterOffer=async function(oid,qty){
-  await _origSubmitCounter.apply(this,arguments);
-  try{
-    const oSnap=await getDoc(doc(db,'offers',oid));
-    if(oSnap.exists()){
-      const o=oSnap.data();
-      const bSnap=await getDoc(doc(db,'users',o.brokerId));
-      const price=parseFloat(document.getElementById('co-price')?.value)||0;
-      if(bSnap.exists()) await notifyBrokerCounterOffer(bSnap.data().phone,o.cropName,price);
-    }
-  }catch(e){console.error('SMS notify counter:',e);}
-};
-
-const _origMarkDelivered=window.markDelivered;
-window.markDelivered=async function(jid){
-  const jSnap=await getDoc(doc(db,'jobs',jid)).catch(()=>null);
-  await _origMarkDelivered.apply(this,arguments);
-  try{
-    if(jSnap?.exists()){
-      const j=jSnap.data();
-      const [fSnap,bSnap]=await Promise.all([
-        getDoc(doc(db,'users',j.farmerId)).catch(()=>null),
-        getDoc(doc(db,'users',j.brokerId)).catch(()=>null),
-      ]);
-      if(fSnap?.exists()&&bSnap?.exists()){
-        await notifyDeliveryComplete(fSnap.data().phone,bSnap.data().phone,j.crop,j.qty);
-      }
-    }
-  }catch(e){console.error('SMS notify delivery:',e);}
-};
+// SMS notifications are called inline within each function above
 
 </script>
 </body>
