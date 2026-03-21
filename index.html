@@ -92,7 +92,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
 .btn{padding:10px 18px;border-radius:var(--rsm);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;}
 .btn:active{transform:scale(0.97);}
 .btn-g{background:var(--gm);color:var(--w);}.btn-g:hover{background:var(--gd);}
-.btn-a{background:var(--am);color:var(--w);}.btn-b{background:var(--bl);color:var(--w);}.btn-r{background:var(--rd);color:var(--w);}
+.btn-a{background:var(--am);color:var(--w);}.btn-oa{background:none;border:1.5px solid var(--am);color:var(--am);}.btn-b{background:var(--bl);color:var(--w);}.btn-r{background:var(--rd);color:var(--w);}
 .btn-og{background:none;border:1.5px solid var(--gm);color:var(--gm);}.btn-ob{background:none;border:1.5px solid var(--bl);color:var(--bl);}
 .btn-sm{padding:7px 13px;font-size:13px;}.btn-full{width:100%;padding:13px;text-align:center;}
 .sh2{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px;}
@@ -863,28 +863,40 @@ async function loadOffers(){
   try{
     const q=query(collection(db,'offers'),where('farmerId','==',S.user.uid));
     const snap=await getDocs(q);const offers=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
-    const pending=offers.filter(o=>o.status==='pending'),history=offers.filter(o=>o.status!=='pending');
+    const pending=offers.filter(o=>['pending','countered'].includes(o.status)),history=offers.filter(o=>!['pending','countered'].includes(o.status));
     let html='';
     if(pending.length===0)html+=`<div class="empty">No pending offers.<br>Post produce to start receiving offers!</div>`;
     pending.forEach(o=>{
       const total=o.price*o.qty,comm=Math.round(total*0.03);
+      const aqaFee=o.aqaFee||0;
+      const youReceive=total-comm-aqaFee;
       html+=`<div class="ocard">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
           <div><div style="font-size:14px;font-weight:600;">${o.brokerName}</div><div style="font-size:12px;color:var(--g5);">${o.brokerLoc||'Kigali'} · ${ts(o.createdAt)}</div></div>
           <span class="badge ba">New offer</span>
         </div>
-        <div style="font-size:13px;color:var(--g5);margin-bottom:6px;">Wants <strong>${o.qty.toLocaleString()} kg</strong> of ${o.cropName||'produce'} · ${o.pickup||''}</div>
-        <div style="font-size:17px;font-weight:700;margin-bottom:2px;">${o.price} RWF/kg · <span style="color:var(--gm)">${total.toLocaleString()} RWF</span></div>
-        <div style="font-size:11px;color:var(--g3);margin-bottom:12px;">Commission (3%): ${comm.toLocaleString()} RWF deducted on confirmation</div>
+        ${o.aqaRequested?`<div style="background:var(--al);border:1px solid var(--am);border-radius:var(--rsm);padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--am);">🔍 <strong>AQA inspection requested</strong> — An AgriConnect agent will visit your farm to verify quality. Transport will be arranged after the broker confirms the report.</div>`:''}
+        <div style="font-size:13px;color:var(--g5);margin-bottom:8px;">Wants <strong>${o.qty.toLocaleString()} kg</strong> of ${o.cropName||'produce'}</div>
+        <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span style="color:var(--g5)">Offer value</span><span style="font-weight:700">${total.toLocaleString()} RWF</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--g5)">Commission (3%)</span><span style="color:var(--rd)">-${comm.toLocaleString()} RWF</span></div>
+          ${aqaFee>0?`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--g5)">AQA fee (1%)</span><span style="color:var(--am)">-${aqaFee.toLocaleString()} RWF</span></div>`:''}
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:1px solid var(--g1);padding-top:6px;margin-top:4px;"><span style="color:var(--g9)">You receive</span><span style="color:var(--gm)">${youReceive.toLocaleString()} RWF</span></div>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-g btn-sm" style="flex:1;min-width:120px;" onclick="acceptOffer('${o.id}')">Accept & confirm</button>
+          <button class="btn btn-g btn-sm" style="flex:1;min-width:100px;" onclick="acceptOffer('${o.id}')">Accept</button>
+          <button class="btn btn-og btn-sm" style="flex:1;min-width:100px;" onclick="openCounterOfferModal('${o.id}','${o.price}','${o.qty}','${o.cropName||''}')">Counter</button>
           <button class="btn btn-og btn-sm" style="flex:1;min-width:80px;" onclick="declineOffer('${o.id}')">Decline</button>
-          <button class="btn btn-og btn-sm" onclick="openChatFromListing('${o.listingId}','${S.user?.uid||''}','','${o.cropName||''}')">💬 Chat</button>
+          <button class="btn btn-og btn-sm" onclick="openChatFromListing('${o.listingId}','${S.user?.uid||''}','','${o.cropName||''}')">💬</button>
         </div></div>`;
     });
     if(history.length>0){
       html+=`<div class="sh2" style="margin-top:16px;"><span class="st">History</span></div>`;
-      history.slice(0,5).forEach(o=>{html+=`<div class="card" style="opacity:0.7;"><div style="display:flex;justify-content:space-between;"><div style="font-size:13px;font-weight:600;">${o.brokerName} — ${o.qty?.toLocaleString()} kg</div><span class="badge ${o.status==='accepted'?'bg':'bgr'}">${o.status}</span></div><div style="font-size:12px;color:var(--g5);margin-top:4px;">${o.price} RWF/kg · ${(o.price*o.qty).toLocaleString()} RWF · ${ts(o.createdAt)}</div></div>`;});
+      history.slice(0,5).forEach(o=>{
+        const badge=o.status==='accepted'?'bg':o.status==='countered'?'ba':o.status==='inspection_confirmed'?'bg':'bgr';
+        const label=o.status==='countered'?'Your counter sent':o.status==='inspection_confirmed'?'AQA confirmed':o.status;
+        html+=`<div class="card" style="opacity:0.7;"><div style="display:flex;justify-content:space-between;"><div style="font-size:13px;font-weight:600;">${o.brokerName} — ${o.qty?.toLocaleString()} kg</div><span class="badge ${badge}">${label}</span></div><div style="font-size:12px;color:var(--g5);margin-top:4px;">${o.price} RWF/kg · ${(o.price*o.qty).toLocaleString()} RWF · ${ts(o.createdAt)}</div></div>`;
+      });
     }
     cont.innerHTML=html;
   }catch(e){cont.innerHTML=`<div class="empty">Error loading offers.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('offers:',e);}
@@ -894,19 +906,76 @@ window.acceptOffer=async function(oid){
   try{
     const oSnap=await getDoc(doc(db,'offers',oid));if(!oSnap.exists())return;
     const o=oSnap.data();
+    const lSnap=await getDoc(doc(db,'listings',o.listingId));
+    const l=lSnap.exists()?lSnap.data():{};
+    const totalValue=o.price*o.qty;
+    const commission=Math.round(totalValue*0.03);
+    // Mark offer accepted
     await updateDoc(doc(db,'offers',oid),{status:'accepted',acceptedAt:serverTimestamp()});
-    const lSnap=await getDoc(doc(db,'listings',o.listingId));const l=lSnap.exists()?lSnap.data():{};
-    await addDoc(collection(db,'transactions'),{farmerId:S.user.uid,brokerId:o.brokerId,offerId:oid,listingId:o.listingId,amount:o.price*o.qty,commission:Math.round(o.price*o.qty*0.03),status:'confirmed',createdAt:serverTimestamp()});
-    const grossPay=Math.round((o.qty||0)*30);
-    const deliveryComm=Math.round(grossPay*0.05);
-    const netPay=grossPay-deliveryComm;
-    await addDoc(collection(db,'jobs'),{offerId:oid,farmerId:S.user.uid,brokerId:o.brokerId,farmerName:S.profile.fname+' '+(S.profile.lname||''),brokerName:o.brokerName,from:l.loc||S.profile.loc||'Farm',to:o.deliveryLoc||'Kigali',cargo:`${l.crop||o.cropName} · ${o.qty?.toLocaleString()} kg`,qty:o.qty,crop:l.crop||o.cropName,pickup:o.pickup||'TBD',grossPay,deliveryComm,pay:netPay,status:'open',createdAt:serverTimestamp()});
-    logEvent(analytics,'offer_accepted',{amount:o.price*o.qty});
-    toast('✅ Offer accepted! Transport job created.');
+    // Mark listing sold (or reduce available qty for partial)
+    await updateDoc(doc(db,'listings',o.listingId),{status:'sold',soldAt:serverTimestamp()});
+    // Decline all other pending offers on same listing and release their reservations
+    const otherOffers=await getDocs(query(collection(db,'offers'),where('listingId','==',o.listingId),where('status','==','pending')));
+    for(const od of otherOffers.docs){
+      if(od.id!==oid){await updateDoc(doc(db,'offers',od.id),{status:'declined',declinedReason:'Listing sold to another broker'});}
+    }
+    // Record transaction
+    await addDoc(collection(db,'transactions'),{
+      type:'trade_commission',
+      farmerId:S.user.uid,brokerId:o.brokerId,offerId:oid,listingId:o.listingId,
+      amount:totalValue,commission,aqaFee:o.aqaFee||0,
+      status:'confirmed',createdAt:serverTimestamp(),
+    });
+    // Create transport job immediately regardless of AQA
+    await createTransportJob(oid,o,l);
+    // If AQA requested, also update the AQA request status to awaiting_inspection
+    if(o.aqaRequested){
+      const aqaSnap=await getDocs(query(collection(db,'aqa_requests'),where('offerId','==',oid))).catch(()=>({docs:[]}));
+      if(!aqaSnap.docs?.length){
+        // Create AQA request if not yet created
+        await addDoc(collection(db,'aqa_requests'),{
+          offerId:oid,listingId:o.listingId,
+          brokerId:o.brokerId,brokerName:o.brokerName,
+          farmerId:S.user.uid,farmerName:S.profile.fname+' '+(S.profile.lname||''),
+          cropName:o.cropName,qty:o.qty,
+          dealValue:totalValue,fee:o.aqaFee||0,
+          location:l.loc||'',
+          status:'awaiting_inspection',photos:[],notes:'',grade:null,
+          createdAt:serverTimestamp(),
+        });
+      } else {
+        await updateDoc(doc(db,'aqa_requests',aqaSnap.docs[0].id),{status:'awaiting_inspection',offerAcceptedAt:serverTimestamp()});
+      }
+      toast('✅ Offer accepted! Transport job created & AQA inspection arranged. Agent visits within 48hrs.');
+    } else {
+      toast('✅ Offer accepted! Transport job is now open for transporters.');
+    }
+    logEvent(analytics,'offer_accepted',{amount:totalValue,aqa:o.aqaRequested||false});
     setTimeout(()=>showRatingModal(oid,'broker_deal'),1500);
     loadOffers();
-  }catch(e){toast('❌ Error: '+e.message);}
+  }catch(e){toast('❌ Error: '+e.message);console.error('acceptOffer:',e);}
 };
+
+// Shared function to create transport job — called after accept (no AQA) or after AQA confirmed
+async function createTransportJob(oid,o,l){
+  // Use broker's proposed rate if set, otherwise estimate 30 RWF/kg
+  const grossPay=o.proposedTransportPay||Math.round((o.qty||0)*30);
+  const deliveryComm=Math.round(grossPay*0.05);
+  const netPay=grossPay-deliveryComm;
+  await addDoc(collection(db,'jobs'),{
+    offerId:oid,
+    farmerId:o.farmerId||S.user?.uid||'',brokerId:o.brokerId,
+    farmerName:o.farmerName||'Farmer',brokerName:o.brokerName||'Broker',
+    from:l.loc||'Farm',to:o.deliveryLoc||'Kigali',
+    cargo:`${l.crop||o.cropName} · ${(o.qty||0).toLocaleString()} kg`,
+    qty:o.qty,crop:l.crop||o.cropName,
+    pickup:o.pickup||'TBD',
+    grossPay,deliveryComm,pay:netPay,
+    negotiable:true,            // transporters can counter-propose
+    counterOffers:[],           // holds transporter counter proposals
+    status:'open',createdAt:serverTimestamp(),
+  });
+}
 
 window.declineOffer=async function(oid){
   const odSnap=await getDoc(doc(db,'offers',oid));
@@ -976,48 +1045,227 @@ async function loadDeals(){
     const snap=await getDocs(query(collection(db,'offers'),where('brokerId','==',S.user.uid)));
     const offers=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
     if(offers.length===0){cont.innerHTML=`<div class="empty">No deals yet.<br>Browse listings and make your first offer!</div>`;return;}
-    cont.innerHTML=offers.map(o=>`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:600;">${o.farmerName||'Farmer'} · ${o.cropName||'Produce'}</div><div style="font-size:12px;color:var(--g5);">${o.deliveryLoc||'Kigali'}</div></div><span class="badge ${o.status==='accepted'?'bg':o.status==='pending'?'ba':'bgr'}">${o.status}</span></div><div style="font-size:13px;color:var(--g5);margin-bottom:6px;">${o.qty?.toLocaleString()} kg · ${o.price} RWF/kg</div><div style="font-size:16px;font-weight:700;color:var(--gm);">${(o.price*o.qty).toLocaleString()} RWF</div><div style="font-size:11px;color:var(--g3);margin-top:4px;">${ts(o.createdAt)}</div></div>`).join('');
+    // Also fetch AQA requests for accepted offers
+    const aqaSnap=await getDocs(query(collection(db,'aqa_requests'),where('brokerId','==',S.user.uid))).catch(()=>({docs:[]}));
+    const aqaMap={};aqaSnap.docs.forEach(d=>{const data=d.data();if(data.offerId)aqaMap[data.offerId]={id:d.id,...data};});
+    const statusLabel={pending:'Pending farmer response',accepted:'Accepted',declined:'Declined',countered:'Farmer countered',awaiting_inspection:'Awaiting AQA',inspection_confirmed:'AQA confirmed',sold:'Completed'};
+    const statusBadge={pending:'ba',accepted:'bg',declined:'bgr',countered:'ba',awaiting_inspection:'ba',inspection_confirmed:'bg',sold:'bg'};
+    cont.innerHTML=offers.map(o=>{
+      const aqa=aqaMap[o.id];
+      const total=(o.price||0)*(o.qty||0);
+      return`<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div><div style="font-size:14px;font-weight:600;">${o.farmerName||'Farmer'} · ${o.cropName||'Produce'}</div><div style="font-size:12px;color:var(--g5);">${o.deliveryLoc||'Kigali'} · ${ts(o.createdAt)}</div></div>
+          <span class="badge ${statusBadge[o.status]||'bgr'}">${statusLabel[o.status]||o.status}</span>
+        </div>
+        ${aqa?`<div style="background:var(--al);border:1px solid var(--am);border-radius:var(--rsm);padding:8px 12px;margin-bottom:8px;font-size:12px;">
+          <div style="font-weight:700;color:var(--am);margin-bottom:3px;">🔍 AQA Status: ${aqa.status==='completed'?'✅ Report ready':aqa.status==='pending'?'⏳ Agent being assigned':'⏳ '+aqa.status}</div>
+          ${aqa.status==='completed'?`<div style="color:var(--g7);margin-bottom:4px;">Grade: <strong>${aqa.grade||'?'}</strong> · ${aqa.notes||'No notes'}</div>
+          ${aqa.photos?.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;">${aqa.photos.map(p=>`<img src="${p}" style="width:60px;height:60px;border-radius:6px;object-fit:cover;">`).join('')}</div>`:''}
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="btn btn-g btn-sm" onclick="confirmAQA('${aqa.id}','${o.id}')">✅ Confirm quality — satisfied with report</button>
+            <button class="btn btn-r btn-sm" onclick="disputeAQA('${aqa.id}')">❌ Dispute</button>
+          </div>`:''}
+        </div>`:''}
+        <div style="font-size:13px;color:var(--g5);margin-bottom:6px;">${(o.qty||0).toLocaleString()} kg · ${o.price} RWF/kg</div>
+        <div style="font-size:16px;font-weight:700;color:var(--gm);margin-bottom:8px;">${total.toLocaleString()} RWF</div>
+        ${o.status==='countered'?`<div style="background:var(--al);border:1px solid var(--am);border-radius:var(--rsm);padding:10px 12px;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:700;color:var(--am);margin-bottom:4px;">⚡ Farmer counter-offered</div>
+          <div style="font-size:13px;color:var(--g7);">New price: <strong>${(o.counterPrice||0).toLocaleString()} RWF/kg</strong> · New total: <strong>${((o.counterPrice||0)*(o.qty||0)).toLocaleString()} RWF</strong></div>
+          ${o.counterMsg?`<div style="font-size:12px;color:var(--g5);margin-top:3px;font-style:italic;">"${o.counterMsg}"</div>`:''}
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-g btn-sm" style="flex:1;" onclick="acceptCounterOffer('${o.id}')">Accept counter</button>
+            <button class="btn btn-og btn-sm" style="flex:1;" onclick="declineCounterOffer('${o.id}')">Decline</button>
+          </div>
+        </div>`:''}
+        ${['accepted','inspection_confirmed'].includes(o.status)?`<button class="btn btn-ob btn-sm btn-full" style="margin-top:4px;" onclick="viewDealJobCounters_byOffer('${o.id}')">🚛 View & negotiate transport</button>`:''}
+      </div>`;
+    }).join('');
   }catch(e){cont.innerHTML=`<div class="empty">Error loading deals.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('deals:',e);}
 }
 
-window.openOfferModal=function(lid){
+// Broker confirms AQA report → transport job created
+window.confirmAQA=async function(aqaId,offerId){
+  // AQA runs in parallel — transport job already exists.
+  // Broker confirming means they are satisfied with the quality report.
+  try{
+    await updateDoc(doc(db,'aqa_requests',aqaId),{status:'confirmed',confirmedAt:serverTimestamp()});
+    await updateDoc(doc(db,'offers',offerId),{status:'inspection_confirmed'});
+    toast('✅ Quality confirmed! The transporter has already been assigned or will pick up shortly.');
+    loadDeals();
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+window.disputeAQA=async function(aqaId){
+  const reason=prompt('Describe the quality issue (this will be reviewed by Hub-In Rwanda):');
+  if(reason===null)return;
+  await updateDoc(doc(db,'aqa_requests',aqaId),{status:'disputed',disputeReason:reason,disputedAt:serverTimestamp()});
+  toast('⚠️ Dispute submitted. Hub-In Rwanda will contact both parties within 24 hours.');
+  loadDeals();
+};
+
+window.openOfferModal=async function(lid){
   const l=(window._lc||[]).find(x=>x.id===lid);
-  const mp=CROPS.find(c=>c.name===l?.crop);
-  document.getElementById('modal-content').innerHTML=`
-    <div class="mt2">Make an offer</div>
-    <div class="ms2">${l?.crop||'Produce'} · Listed at ${l?.price||'?'} RWF/kg · ${l?.qty?.toLocaleString()||'?'} kg · ${l?.loc||''}${mp?` · Market: ${mp.price} RWF/kg`:''}</div>
-    ${(l?.qty>=2000||(l?.price*(l?.qty||0))>=500000)?`<div class="aqa-trigger"><div class="aqa-trigger-t">🔍 AQA Inspection recommended</div><div style="font-size:12px;color:var(--g7);">This is a large order (${(l?.qty||0).toLocaleString()} kg · ${((l?.price||0)*(l?.qty||0)).toLocaleString()} RWF). An AgriConnect field agent will verify produce quality before payment. Fee: 1% added to your offer.</div><label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;"><input type="checkbox" id="mo-aqa" style="width:16px;height:16px;accent-color:var(--am)"><span style="font-size:12px;font-weight:600;color:var(--am);">Request AQA inspection (+1% fee)</span></label></div>`:''}
-    <div class="fg"><label class="fl">Your offer price (RWF/kg)</label><input class="fi" id="mo-p" type="number" value="${Math.round((l?.price||280)*0.95)}" oninput="calcOfferTotal()" inputmode="numeric"></div>
-    <div class="fg"><label class="fl">Quantity you want (kg)</label><input class="fi" id="mo-q" type="number" value="${Math.floor((l?.qty||1000)*0.75)}" oninput="calcOfferTotal()" inputmode="numeric"></div>
-    <div class="fg"><label class="fl">Delivery location</label><input class="fi" id="mo-dl" placeholder="e.g. Kimironko market, Kigali"></div>
-    <div class="fg"><label class="fl">Pickup arrangement</label><select class="fi" id="mo-pk"><option>I arrange transport</option><option>Farmer delivers to Kigali</option><option>Split arrangement</option></select></div>
-    <div id="offer-total" style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--g5);margin-bottom:4px;"></div>
-    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-b" id="offer-sub" onclick="submitOffer('${lid}','${l?.userId||''}','${l?.crop||''}','${l?.farmerName||''}')">Send offer</button></div>`;
-  document.getElementById('modal').classList.add('open');calcOfferTotal();
+  if(!l){toast('Listing not found. Please refresh.');return;}
+  // Show loading state first
+  document.getElementById('modal-content').innerHTML=`<div class="mt2">Make an offer</div><div class="loading-inline">Checking availability...</div>`;
+  document.getElementById('modal').classList.add('open');
+  try{
+    // Fetch fresh listing data to get accurate reserved qty
+    const freshSnap=await getDoc(doc(db,'listings',lid));
+    if(!freshSnap.exists()||freshSnap.data().status!=='available'){
+      document.getElementById('modal-content').innerHTML=`<div class="mt2">Not available</div><div class="ms2">This listing is no longer available.</div><div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button></div>`;
+      return;
+    }
+    const fresh=freshSnap.data();
+    const avail=Math.max(0,(fresh.qty||0)-(fresh.reserved||0));
+    if(avail<=0){
+      document.getElementById('modal-content').innerHTML=`<div class="mt2">Fully reserved</div><div class="ms2">All ${fresh.qty?.toLocaleString()} kg of this listing are currently under offer from other brokers. Check back later if those offers are declined.</div><div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button></div>`;
+      return;
+    }
+    // All good — show the form (brokers can offer multiple batches from the same listing)
+    const mp=CROPS.find(c=>c.name===fresh.crop);
+    const isLarge=(fresh.qty>=2000)||((fresh.price*fresh.qty)>=500000);
+    const suggestQty=Math.min(Math.floor(avail*0.75),avail);
+    document.getElementById('modal-content').innerHTML=`
+      <div class="mt2">Make an offer</div>
+      <div class="ms2">${fresh.crop} · ${fresh.price} RWF/kg · Listed by ${fresh.farmerName}${mp?` · Market: ${mp.price} RWF/kg`:''}</div>
+      <div style="background:var(--gl);border:1px solid var(--gb);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--gd);margin-bottom:14px;">
+        ✅ <strong>${avail.toLocaleString()} kg available</strong> (${(fresh.qty||0).toLocaleString()} kg total${fresh.reserved>0?` · ${fresh.reserved.toLocaleString()} kg under other offers`:''})
+      </div>
+      ${isLarge?`<div class="aqa-trigger">
+        <div class="aqa-trigger-t">🔍 AQA Inspection recommended</div>
+        <div style="font-size:12px;color:var(--g7);margin-bottom:8px;">Large order (${fresh.qty?.toLocaleString()} kg · ${(fresh.price*fresh.qty).toLocaleString()} RWF). An AgriConnect field agent visits the farm to verify quality before you pay. Transport job is only created after you confirm the inspection report. Fee: 1% of deal value.</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="mo-aqa" style="width:16px;height:16px;accent-color:var(--am)" onchange="calcOfferTotal()">
+          <span style="font-size:12px;font-weight:600;color:var(--am);">Request AQA inspection (+1% fee)</span>
+        </label>
+      </div>`:''}
+      <div class="fg"><label class="fl">Your offer price (RWF/kg)</label><input class="fi" id="mo-p" type="number" value="${Math.round((fresh.price||280)*0.95)}" min="1" oninput="calcOfferTotal()" inputmode="numeric"></div>
+      <div class="fg">
+        <label class="fl">Quantity you want (kg) <span style="color:var(--g3);font-weight:400;">max ${avail.toLocaleString()} kg</span></label>
+        <input class="fi" id="mo-q" type="number" value="${suggestQty}" min="1" max="${avail}" oninput="calcOfferTotal();enforceMaxQty(${avail})" inputmode="numeric">
+      </div>
+      <div class="fg"><label class="fl">Delivery location</label><input class="fi" id="mo-dl" placeholder="e.g. Kimironko market, Kigali"></div>
+      <div class="fg"><label class="fl">Pickup arrangement</label>
+        <select class="fi" id="mo-pk" onchange="toggleTransportPay(this.value)">
+          <option value="agriconnect">I arrange transport via AgriConnect</option>
+          <option value="farmer">Farmer delivers to agreed point</option>
+          <option value="split">Split arrangement</option>
+        </select>
+      </div>
+      <div class="fg" id="transport-pay-fg">
+        <label class="fl">Proposed transport pay (RWF total) <span style="color:var(--g3);font-weight:400;">— transporters can counter-negotiate</span></label>
+        <input class="fi" id="mo-tpay" type="number" placeholder="e.g. 45000" min="0" oninput="calcOfferTotal()" inputmode="numeric">
+        <div style="font-size:11px;color:var(--g5);margin-top:4px;">Suggested: ~${Math.round((fresh?.qty||1000)*30).toLocaleString()} RWF (30 RWF/kg estimate)</div>
+      </div>
+      <div id="offer-total" style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--g5);margin-bottom:4px;"></div>
+      <div class="mact">
+        <button class="btn btn-og" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-b" id="offer-sub" onclick="submitOffer('${lid}','${fresh.userId||''}','${fresh.crop||''}','${fresh.farmerName||''}',${avail})">Send offer</button>
+      </div>`;
+    calcOfferTotal();
+  }catch(e){
+    document.getElementById('modal-content').innerHTML=`<div class="mt2">Error</div><div class="ms2">${e.message}</div><div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button></div>`;
+  }
+};
+
+// Enforce the max qty in real time as broker types
+window.enforceMaxQty=function(max){
+  const inp=document.getElementById('mo-q');
+  if(!inp)return;
+  const v=parseFloat(inp.value)||0;
+  if(v>max){inp.value=max;toast(`⚠️ Max available is ${max.toLocaleString()} kg`);calcOfferTotal();}
+  if(v<1){inp.value=1;}
 };
 
 window.calcOfferTotal=function(){
-  const p=parseFloat(document.getElementById('mo-p')?.value)||0,q=parseFloat(document.getElementById('mo-q')?.value)||0;
+  const p=parseFloat(document.getElementById('mo-p')?.value)||0;
+  const q=parseFloat(document.getElementById('mo-q')?.value)||0;
   const aqa=document.getElementById('mo-aqa')?.checked;
-  const base=p*q;const comm=Math.round(base*0.03);const aqaFee=aqa?Math.round(base*0.01):0;
+  const tpay=parseFloat(document.getElementById('mo-tpay')?.value)||0;
+  const base=p*q;
+  const comm=Math.round(base*0.03);
+  const aqaFee=aqa?Math.round(base*0.01):0;
   const el=document.getElementById('offer-total');
-  if(el)el.innerHTML=`Total: <strong>${base.toLocaleString()} RWF</strong> · Commission (3%): <strong>${comm.toLocaleString()} RWF</strong>${aqa?` · AQA fee (1%): <strong style="color:var(--am)">${aqaFee.toLocaleString()} RWF</strong>`:''}`;
+  if(!el)return;
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span>Offer value</span><strong>${base.toLocaleString()} RWF</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px;color:var(--rd);"><span>Commission (3%)</span><span>-${comm.toLocaleString()} RWF</span></div>
+    ${aqa?`<div style="display:flex;justify-content:space-between;margin-bottom:3px;color:var(--am);"><span>AQA fee (1%)</span><span>-${aqaFee.toLocaleString()} RWF</span></div>`:''}
+    ${tpay>0?`<div style="display:flex;justify-content:space-between;margin-bottom:3px;color:var(--g5);"><span>Proposed transport pay</span><span>${tpay.toLocaleString()} RWF</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--g1);padding-top:4px;margin-top:4px;"><span>Your total cost</span><strong style="color:var(--bl)">${(base+comm+aqaFee+tpay).toLocaleString()} RWF</strong></div>`;
 };
 
-window.submitOffer=async function(lid,farmerId,cropName,farmerName){
-  const price=parseFloat(document.getElementById('mo-p').value),qty=parseFloat(document.getElementById('mo-q').value);
-  const dloc=document.getElementById('mo-dl').value.trim(),pickup=document.getElementById('mo-pk').value;
-  if(!price||!qty){toast('Please fill in price and quantity.');return;}
-  const btn=document.getElementById('offer-sub');btn.disabled=true;btn.textContent='Sending...';
+window.toggleTransportPay=function(val){
+  const fg=document.getElementById('transport-pay-fg');
+  if(fg)fg.style.display=val==='agriconnect'?'block':'none';
+};
+
+window.submitOffer=async function(lid,farmerId,cropName,farmerName,maxAvail){
+  const price=parseFloat(document.getElementById('mo-p').value);
+  const qty=parseFloat(document.getElementById('mo-q').value);
+  const dloc=document.getElementById('mo-dl').value.trim();
+  const pickup=document.getElementById('mo-pk').value;
+  // Client-side validation
+  if(!price||price<=0){toast('❌ Please enter a valid price.');return;}
+  if(!qty||qty<=0){toast('❌ Please enter a valid quantity.');return;}
+  if(maxAvail&&qty>maxAvail){toast(`❌ Maximum available is ${maxAvail.toLocaleString()} kg.`);return;}
+  if(!dloc){toast('❌ Please enter a delivery location.');return;}
+  const btn=document.getElementById('offer-sub');btn.disabled=true;btn.textContent='Checking availability...';
   try{
+    // Server-side double-check: fetch fresh listing and validate qty
+    const liveSnap=await getDoc(doc(db,'listings',lid));
+    if(!liveSnap.exists()||liveSnap.data().status!=='available'){
+      toast('❌ This listing is no longer available.');btn.disabled=false;btn.textContent='Send offer';return;
+    }
+    const live=liveSnap.data();
+    const liveAvail=Math.max(0,(live.qty||0)-(live.reserved||0));
+    if(qty>liveAvail){
+      toast(`❌ Only ${liveAvail.toLocaleString()} kg available now. Please reduce your quantity.`);
+      btn.disabled=false;btn.textContent='Send offer';
+      // Update the input
+      const inp=document.getElementById('mo-q');if(inp)inp.value=liveAvail;
+      calcOfferTotal();return;
+    }
+    btn.textContent='Sending...';
     const aqaRequested=document.getElementById('mo-aqa')?.checked||false;
     const aqaFee=aqaRequested?Math.round(price*qty*0.01):0;
-    await addDoc(collection(db,'offers'),{listingId:lid,brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),brokerLoc:S.profile.loc||'Kigali',farmerId,farmerName,cropName,price,qty,deliveryLoc:dloc,pickup,aqaRequested,aqaFee,status:'pending',createdAt:serverTimestamp()});
-    if(aqaRequested){await addDoc(collection(db,'aqa_requests'),{listingId:lid,brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),farmerId,farmerName,cropName,qty,dealValue:price*qty,fee:aqaFee,status:'pending',photos:[],notes:'',createdAt:serverTimestamp()}).catch(()=>{});}
-    // Reserve quantity on listing
-    try{const lSnap2=await getDoc(doc(db,'listings',lid));if(lSnap2.exists()){const cur=lSnap2.data().reserved||0;await updateDoc(doc(db,'listings',lid),{reserved:cur+qty});}}catch(e2){}
-    logEvent(analytics,'offer_made',{crop:cropName,price,qty});
-    closeModal();toast('✅ Offer sent! Farmer will be notified.');
+    const totalValue=price*qty;
+    const commission=Math.round(totalValue*0.03);
+    const proposedTransportPay=parseFloat(document.getElementById('mo-tpay')?.value)||Math.round(qty*30);
+    // Save offer
+    const offerRef=await addDoc(collection(db,'offers'),{
+      listingId:lid,brokerId:S.user.uid,
+      brokerName:S.profile.fname+' '+(S.profile.lname||''),
+      brokerLoc:S.profile.loc||'Kigali',
+      farmerId,farmerName,cropName,price,qty,
+      deliveryLoc:dloc,pickup,
+      totalValue,commission,
+      aqaRequested,aqaFee,
+      proposedTransportPay,
+      status:'pending',
+      createdAt:serverTimestamp(),
+    });
+    // Reserve quantity atomically
+    await updateDoc(doc(db,'listings',lid),{reserved:(live.reserved||0)+qty});
+    // If AQA requested, create the AQA request linked to this offer
+    if(aqaRequested){
+      await addDoc(collection(db,'aqa_requests'),{
+        offerId:offerRef.id,listingId:lid,
+        brokerId:S.user.uid,brokerName:S.profile.fname+' '+(S.profile.lname||''),
+        farmerId,farmerName,cropName,qty,
+        dealValue:totalValue,fee:aqaFee,
+        location:live.loc||'',
+        status:'pending',photos:[],notes:'',grade:null,
+        createdAt:serverTimestamp(),
+      });
+    }
+    logEvent(analytics,'offer_made',{crop:cropName,price,qty,aqa:aqaRequested});
+    closeModal();
+    toast(aqaRequested
+      ?'✅ Offer sent with AQA request! Farmer will be notified. Our agent will visit the farm within 48 hours.'
+      :'✅ Offer sent! Farmer will be notified.');
   }catch(e){toast('❌ Error: '+e.message);btn.disabled=false;btn.textContent='Send offer';}
 };
 
@@ -1051,8 +1299,10 @@ function scrJobs(){
 async function loadJobs(){
   const cont=document.getElementById('jobs-list')||document.getElementById('thome-jobs'),cnt=document.getElementById('jobs-cnt');if(!cont)return;
   try{
-    const jSnap=await getDocs(query(collection(db,'jobs'),where('status','==','open')));
+    // Show open AND negotiating jobs — transporter should see jobs they've countered
+    const jSnap=await getDocs(query(collection(db,'jobs'),where('status','in',['open','negotiating'])));
     const jobs=byDate(jSnap.docs.map(d=>({id:d.id,...d.data()})));
+    // Also fetch jobs where transporter has a pending counter offer
     const mySnap=await getDocs(query(collection(db,'jobs'),where('transporterId','==',S.user?.uid||'x')));
     const myJobs=mySnap.docs.map(d=>d.data());
     const done=myJobs.filter(j=>j.status==='delivered'),active=myJobs.filter(j=>['in_progress','loaded'].includes(j.status));
@@ -1111,13 +1361,27 @@ window.markDelivered=async function(jid){
 window.openJobModal=async function(jid){
   const jSnap=await getDoc(doc(db,'jobs',jid));if(!jSnap.exists())return;
   const j={id:jid,...jSnap.data()};const rl=j.returnLoad||null;
+  const myCounter=(j.counterOffers||[]).find(c=>c.transporterId===S.user.uid&&c.status==='pending');
   document.getElementById('modal-content').innerHTML=`
-    <div class="mt2">Accept job</div><div class="ms2">${j.from} → ${j.to}</div>
-    <div class="card" style="margin-bottom:12px;"><div style="font-size:14px;font-weight:600;margin-bottom:8px;">Job details</div>
-      <div style="font-size:13px;color:var(--g5);line-height:1.7;">Cargo: <strong>${j.cargo}</strong><br>Pickup: ${j.pickup||'TBD'}<br>Broker: ${j.brokerName}<br>Gross pay: ${(j.grossPay||j.pay||0).toLocaleString()} RWF<br>Platform fee (5%): <span style="color:var(--rd)">-${(j.deliveryComm||0).toLocaleString()} RWF</span><br>You earn: <strong style="color:var(--am)">${(j.pay||0).toLocaleString()} RWF</strong></div>
+    <div class="mt2">Job details</div><div class="ms2">${j.from} → ${j.to}</div>
+    <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:13px;margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--g5);line-height:1.9;">
+        Cargo: <strong>${j.cargo}</strong><br>
+        Pickup: ${j.pickup||'TBD'}<br>
+        Broker: ${j.brokerName}<br>
+        <span style="color:var(--g3)">──────────────</span><br>
+        Broker's offer: <strong>${(j.grossPay||j.pay||0).toLocaleString()} RWF</strong><br>
+        Platform fee (5%): <span style="color:var(--rd)">-${(j.deliveryComm||0).toLocaleString()} RWF</span><br>
+        You earn: <strong style="color:var(--am);font-size:15px;">${(j.pay||0).toLocaleString()} RWF</strong>
+      </div>
     </div>
+    ${myCounter?`<div style="background:var(--al);border:1px solid var(--am);border-radius:var(--rsm);padding:10px 13px;margin-bottom:12px;font-size:12px;color:var(--am);">⏳ Your counter proposal of ${myCounter.proposedPay?.toLocaleString()} RWF is pending broker review.</div>`:''}
     ${rl?`<div class="retload"><div style="font-size:18px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load available!</div><div class="retload-s">${rl.from} → ${rl.to} · ${rl.cargo} · +${rl.pay?.toLocaleString()} RWF extra</div></div></div>`:''}
-    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-a" onclick="acceptJob('${jid}')">Accept — ${((j.pay||0)+(rl?.pay||0)).toLocaleString()} RWF total</button></div>`;
+    <div class="mact">
+      <button class="btn btn-og" onclick="closeModal()">Cancel</button>
+      ${!myCounter?`<button class="btn btn-oa btn-sm" onclick="closeModal();openTransportCounterModal('${jid}','${j.pay||0}')">Counter</button>`:''}
+      <button class="btn btn-a" onclick="acceptJob('${jid}')">Accept — ${((j.pay||0)+(rl?.pay||0)).toLocaleString()} RWF</button>
+    </div>`;
   document.getElementById('modal').classList.add('open');
 };
 
@@ -1482,13 +1746,20 @@ function lcard(l,viewer){
 
 function jcard(j){
   return`<div class="jcard">
-    <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><div class="jr">${j.from} → ${j.to}</div><span class="badge ba">Open</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><div class="jr">${j.from} → ${j.to}</div><span class="badge ${j.status==='negotiating'?'ba':'bg'}">${j.status==='negotiating'?'⚡ Negotiating':'Open'}</span></div>
     <div class="jd">${j.cargo}</div>
     ${j.returnLoad?`<div class="retload"><div style="font-size:16px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load available!</div><div class="retload-s">${j.returnLoad.from} → ${j.returnLoad.to} · +${j.returnLoad.pay?.toLocaleString()} RWF</div></div></div>`:''}
     <div class="jmg"><div><div class="jml">Cargo</div><div class="jmv">${j.cargo}</div></div><div><div class="jml">Pickup</div><div class="jmv">${j.pickup||'TBD'}</div></div><div><div class="jml">To</div><div class="jmv">${j.to}</div></div><div><div class="jml">Broker</div><div class="jmv">${j.brokerName}</div></div></div>
     <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-      <div><div class="jpay">${(j.pay||0).toLocaleString()} RWF</div>${j.returnLoad?`<div style="font-size:11px;color:var(--gm);font-weight:700;">+${j.returnLoad.pay?.toLocaleString()} return = ${((j.pay||0)+(j.returnLoad?.pay||0)).toLocaleString()} total</div>`:''}</div>
-      <button class="btn btn-a btn-sm" onclick="openJobModal('${j.id}')">Accept</button>
+      <div>
+        <div class="jpay">${(j.pay||0).toLocaleString()} RWF</div>
+        ${j.returnLoad?`<div style="font-size:11px;color:var(--gm);font-weight:700;">+${j.returnLoad.pay?.toLocaleString()} return = ${((j.pay||0)+(j.returnLoad?.pay||0)).toLocaleString()} total</div>`:''}
+        <div style="font-size:10px;color:var(--g3);margin-top:2px;">after 5% platform fee</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-oa btn-sm" onclick="openTransportCounterModal('${j.id}','${j.grossPay||j.pay||0}')">💬 Counter</button>
+        <button class="btn btn-a btn-sm" onclick="openJobModal('${j.id}')">Accept</button>
+      </div>
     </div>
   </div>`;}
 
@@ -1796,6 +2067,218 @@ async function loadFarmerHome(){
     if(cont)cont.innerHTML=listings.length===0?`<div class="empty">No listings yet.<br>Post your first produce below!</div>`:listings.slice(0,3).map(l=>lcard(l,'farmer')).join('');
   }catch(e){console.error(e);}
 }
+
+
+// ═══════════════════════════════════════════════════
+// NEGOTIATION FUNCTIONS
+// ═══════════════════════════════════════════════════
+
+// FARMER counter-offer to broker
+window.openCounterOfferModal=function(oid,currentPrice,currentQty,cropName){
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">Counter offer</div>
+    <div class="ms2">Propose your own price. The broker will see your counter and can accept or decline.</div>
+    <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;margin-bottom:14px;font-size:13px;">
+      Broker offered: <strong>${parseFloat(currentPrice).toLocaleString()} RWF/kg</strong> for <strong>${parseFloat(currentQty).toLocaleString()} kg</strong> of ${cropName}
+    </div>
+    <div class="fg"><label class="fl">Your counter price (RWF/kg)</label>
+      <input class="fi" id="co-price" type="number" value="${currentPrice}" min="1" inputmode="numeric" oninput="updateCounterPreview(${currentQty})">
+    </div>
+    <div id="co-preview" style="background:var(--gl);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--gd);margin-bottom:4px;"></div>
+    <div class="fg"><label class="fl">Message to broker (optional)</label>
+      <input class="fi" id="co-msg" type="text" placeholder="e.g. Quality is premium grade, this price is fair">
+    </div>
+    <div class="mact">
+      <button class="btn btn-og" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-g" onclick="submitCounterOffer('${oid}','${currentQty}')">Send counter offer</button>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+  updateCounterPreview(currentQty);
+};
+
+window.updateCounterPreview=function(qty){
+  const p=parseFloat(document.getElementById('co-price')?.value)||0;
+  const total=p*qty;
+  const el=document.getElementById('co-preview');
+  if(el)el.innerHTML=`New total: <strong>${total.toLocaleString()} RWF</strong> · You receive: <strong>${Math.round(total*0.97).toLocaleString()} RWF</strong> after 3% commission`;
+};
+
+window.submitCounterOffer=async function(oid,qty){
+  const price=parseFloat(document.getElementById('co-price').value);
+  const msg=document.getElementById('co-msg').value.trim();
+  if(!price||price<=0){toast('Please enter a valid counter price.');return;}
+  try{
+    await updateDoc(doc(db,'offers',oid),{
+      status:'countered',
+      counterPrice:price,
+      counterMsg:msg,
+      counteredAt:serverTimestamp(),
+    });
+    closeModal();
+    toast('✅ Counter offer sent! The broker will be notified.');
+    loadOffers();
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+// TRANSPORTER counter-offer to broker on a job
+window.openTransportCounterModal=function(jid,currentPay){
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">Propose your rate</div>
+    <div class="ms2">The broker posted <strong>${parseFloat(currentPay).toLocaleString()} RWF</strong> for this job. You keep 95% after the 5% platform fee. Propose a different amount if you need more — the broker decides.</div>
+    <div class="fg"><label class="fl">Your proposed pay (RWF total)</label>
+      <input class="fi" id="tp-pay" type="number" value="${currentPay}" min="1" inputmode="numeric" oninput="updateTransportPreview()">
+    </div>
+    <div id="tp-preview" style="background:var(--al);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--am);margin-bottom:4px;"></div>
+    <div class="fg"><label class="fl">Reason (optional)</label>
+      <input class="fi" id="tp-msg" type="text" placeholder="e.g. Long distance route, fuel costs are higher">
+    </div>
+    <div class="mact">
+      <button class="btn btn-og" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-a" onclick="submitTransportCounter('${jid}')">Send proposal</button>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+  updateTransportPreview();
+};
+
+window.updateTransportPreview=function(){
+  const pay=parseFloat(document.getElementById('tp-pay')?.value)||0;
+  const net=Math.round(pay*0.95);
+  const el=document.getElementById('tp-preview');
+  if(el)el.innerHTML=`You propose: <strong>${pay.toLocaleString()} RWF</strong> · After 5% platform fee: <strong>${net.toLocaleString()} RWF</strong> to you`;
+};
+
+window.submitTransportCounter=async function(jid){
+  const pay=parseFloat(document.getElementById('tp-pay').value);
+  const msg=document.getElementById('tp-msg').value.trim();
+  if(!pay||pay<=0){toast('Please enter a valid pay amount.');return;}
+  try{
+    const jSnap=await getDoc(doc(db,'jobs',jid));
+    if(!jSnap.exists())return;
+    const existing=jSnap.data().counterOffers||[];
+    await updateDoc(doc(db,'jobs',jid),{
+      counterOffers:[...existing,{
+        transporterId:S.user.uid,
+        transporterName:S.profile.fname+' '+(S.profile.lname||''),
+        vehicle:S.profile.vehicle||'',
+        rating:S.profile.rating||5,
+        proposedPay:pay,
+        netPay:Math.round(pay*0.95),
+        msg,
+        createdAt:new Date().toISOString(),
+        status:'pending',
+      }],
+      status:'negotiating',
+    });
+    closeModal();
+    toast('✅ Your proposal sent! The broker will review and respond.');
+    showScr('jobs');
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+// BROKER reviews counter-offers on their job
+window.openJobCounterReview=async function(jid){
+  const jSnap=await getDoc(doc(db,'jobs',jid));
+  if(!jSnap.exists())return;
+  const j=jSnap.data();
+  const counters=j.counterOffers||[];
+  if(!counters.length){toast('No counter proposals yet.');return;}
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">Transport proposals</div>
+    <div class="ms2">${j.from} → ${j.to} · ${j.cargo}</div>
+    <div style="margin-bottom:4px;font-size:12px;color:var(--g5);">Your offer: ${(j.grossPay||j.pay||0).toLocaleString()} RWF · ${counters.length} transporter(s) proposed</div>
+    ${counters.map((c,i)=>`
+      <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;">${c.transporterName||'Transporter'} ${c.vehicle?'· '+c.vehicle:''}</div>
+            <div style="font-size:11px;color:var(--g5);">★ ${(c.rating||5).toFixed(1)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px;font-weight:700;color:var(--am);">${c.proposedPay?.toLocaleString()} RWF</div>
+            <div style="font-size:11px;color:var(--g3);">They earn: ${c.netPay?.toLocaleString()} RWF</div>
+          </div>
+        </div>
+        ${c.msg?`<div style="font-size:12px;color:var(--g7);margin-bottom:8px;font-style:italic;">"${c.msg}"</div>`:''}
+        ${c.status==='pending'?`<div style="display:flex;gap:8px;">
+          <button class="btn btn-g btn-sm" style="flex:1;" onclick="acceptTransportCounter('${jid}',${i})">Accept this proposal</button>
+          <button class="btn btn-og btn-sm" onclick="declineTransportCounter('${jid}',${i})">Decline</button>
+        </div>`:`<span class="badge ${c.status==='accepted'?'bg':'bgr'}">${c.status}</span>`}
+      </div>`).join('')}
+    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button></div>`;
+  document.getElementById('modal').classList.add('open');
+};
+
+window.acceptTransportCounter=async function(jid,idx){
+  try{
+    const jSnap=await getDoc(doc(db,'jobs',jid));
+    if(!jSnap.exists())return;
+    const j=jSnap.data();
+    const counters=[...j.counterOffers];
+    const chosen=counters[idx];
+    // Mark chosen as accepted, others as declined
+    counters.forEach((c,i)=>c.status=i===idx?'accepted':'declined');
+    const grossPay=chosen.proposedPay;
+    const deliveryComm=Math.round(grossPay*0.05);
+    await updateDoc(doc(db,'jobs',jid),{
+      counterOffers:counters,
+      transporterId:chosen.transporterId,
+      transporterName:chosen.transporterName,
+      grossPay,deliveryComm,pay:Math.round(grossPay*0.95),
+      status:'in_progress',acceptedAt:serverTimestamp(),
+    });
+    closeModal();
+    toast('✅ Transporter confirmed at '+grossPay.toLocaleString()+' RWF!');
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+window.declineTransportCounter=async function(jid,idx){
+  const jSnap=await getDoc(doc(db,'jobs',jid));
+  if(!jSnap.exists())return;
+  const j=jSnap.data();
+  const counters=[...j.counterOffers];
+  counters[idx].status='declined';
+  const allDeclined=counters.every(c=>c.status==='declined');
+  await updateDoc(doc(db,'jobs',jid),{counterOffers:counters,status:allDeclined?'open':'negotiating'});
+  closeModal();toast('Proposal declined.');
+};
+
+// BROKER sees counter-offers on deals screen
+window.viewDealJobCounters=async function(jid){
+  await openJobCounterReview(jid);
+};
+
+// BROKER accepts farmer counter-offer
+window.acceptCounterOffer=async function(oid){
+  try{
+    const oSnap=await getDoc(doc(db,'offers',oid));
+    if(!oSnap.exists())return;
+    const o=oSnap.data();
+    // Update offer with the counter price, mark as pending again for farmer to see acceptance
+    await updateDoc(doc(db,'offers',oid),{
+      price:o.counterPrice,
+      totalValue:o.counterPrice*o.qty,
+      commission:Math.round(o.counterPrice*o.qty*0.03),
+      status:'pending',
+      counterAccepted:true,
+      counterAcceptedAt:serverTimestamp(),
+    });
+    toast('✅ Counter offer accepted! Farmer has been notified — they can now confirm the deal.');
+    loadDeals();
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+window.declineCounterOffer=async function(oid){
+  await updateDoc(doc(db,'offers',oid),{status:'declined',declinedAt:serverTimestamp()});
+  toast('Counter offer declined.');
+  loadDeals();
+};
+
+window.viewDealJobCounters_byOffer=async function(offerId){
+  // Find the job linked to this offer
+  const snap=await getDocs(query(collection(db,'jobs'),where('offerId','==',offerId))).catch(()=>({docs:[]}));
+  if(!snap.docs?.length){toast('No transport job found for this deal yet.');return;}
+  await openJobCounterReview(snap.docs[0].id);
+};
 
 window.closeModal=function(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');};
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
