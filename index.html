@@ -481,13 +481,76 @@ const PROV_COORDS={
   northern:{lat:-1.4,lon:29.7},southern:{lat:-2.5,lon:29.8},kigali:{lat:-1.95,lon:30.06},
 };
 
-// ─── RWANDA LOCATION HIERARCHY ───
-const RW_LOCATIONS={
-  'Eastern Province':{districts:{'Bugesera':['Gashora','Juru','Kamabuye','Mareba','Mayange','Musenyi','Mwogo','Ngeruka','Ntarama','Ruhuha','Rweru','Shyara'],'Gatsibo':['Gasange','Gatsibo','Gitoki','Kabarore','Kageyo','Kiramuruzi','Kiziguro','Muhura','Murambi','Ngarama','Nyagihanga','Remera','Rugarama','Rwimbogo'],'Kayonza':['Gahini','Kabare','Kabarondo','Mukarange','Murama','Murundi','Mwiri','Ndego','Nyamirama','Rukara','Ruramira','Rwinkwavu'],'Kirehe':['Gahara','Gatore','Kigarama','Kigina','Kirehe','Mahama','Mpanga','Musaza','Mushikiri','Nasho','Nyamugari','Nyarubuye'],'Ngoma':['Gashanda','Jarama','Karembo','Kazo','Kibungo','Mugesera','Murama','Mutenderi','Remera','Rukira','Rukumberi','Rurenge','Sake','Zaza'],'Nyagatare':['Gatunda','Karama','Karangazi','Katabagemu','Kateri','Kibali','Kiyombe','Matimba','Mimuli','Mukama','Musheli','Nyagatare','Rukomo','Rwempasha','Rwimiyaga','Tabagwe'],'Rwamagana':['Fumbwe','Gahengeri','Gishari','Karenge','Kigabiro','Muhazi','Munyaga','Munyiginya','Musha','Muyumbu','Mwulire','Nyakariba','Nyakibanda','Nzige','Rubona']}},
-  'Western Province':{districts:{'Karongi':['Bwishyura','Gashari','Gishyita','Gitesi','Mubuga','Murambi','Murundi','Mutuntu','Rubengera','Rugabano','Ruganda','Rwankuba','Twumba'],'Ngororero':['Bwira','Gatumba','Hindiro','Kabaya','Kageyo','Kavumu','Matyazo','Muhanda','Muhororo','Ndaro','Ngororero','Nyange','Sovu'],'Nyabihu':['Bigogwe','Jomba','Kabatwa','Karago','Kintobo','Mukamira','Muringa','Rambura','Rugera','Rurembo','Shyira'],'Nyamasheke':['Bushekeri','Bushenge','Cyato','Gihombo','Kagano','Kanjongo','Karambi','Karengera','Kirimbi','Macuba','Mahembe','Nyabitekeri','Rangiro','Ruharambuga','Saint Constantin'],'Rubavu':['Bugeshi','Busasamana','Cyanzarwe','Gisenyi','Kanama','Kanzenze','Mudende','Nyamyumba','Nyundo','Rubavu','Rugerero'],'Rusizi':['Bugarama','Butare','Bweyeye','Gashonga','Giheke','Gihundwe','Gitambi','Kamembe','Muganza','Mururu','Nkungu','Nyakarenzo','Nzahaha','Rwimbogo'],'Rutsiro':['Boneza','Gihango','Kigeyo','Kivumu','Manihira','Mukura','Murunda','Musasa','Mushonyi','Mushubati','Nyabirasi','Ruhango','Rusebeya'],'Karongyi':['Gitesi','Mubuga']}},
-  'Northern Province':{districts:{'Burera':['Bungwe','Butaro','Cyanika','Cyeru','Gahunga','Gatebe','Gitovu','Kagogo','Kinoni','Kinyababa','Kivuye','Nemba','Rugarama','Rugendabari','Ruhunde','Rusarabuye','Rwerere'],'Gakenke':['Busengo','Coko','Cyabingo','Gakenke','Gashenyi','Janja','Kamubuga','Karambo','Kivuruga','Mataba','Minazi','Mugunga','Muhondo','Muyongwe','Muzo','Nemba','Ruli','Rusasa','Rushashi'],'Gicumbi':['Bukure','Bwisige','Byumba','Cyumba','Giti','Kaniga','Manyagiro','Miyove','Mukono','Mutete','Nyamiyaga','Nyankenke','Rubaya','Rukomo','Rushaki','Rutare','Ruvune','Rwamiko','Shangasha'],'Musanze':['Busogo','Cyuve','Gacaca','Gashaki','Gataraga','Kimonyi','Kinigi','Muhoza','Muko','Musanze','Nkotsi','Nyange','Remera','Rwaza','Shingiro'],'Rulindo':['Base','Burega','Bushoki','Buyoga','Cyinzuzi','Cyungo','Kinihira','Kisaro','Masoro','Mbogo','Murambi','Ngoma','Ntarabana','Rukozo','Rusiga','Shyorongi','Tumba']}},
-  'Southern Province':{districts:{'Gisagara':['Gikonko','Gishubi','Kansi','Kibilizi','Kigoma','Kigembe','Mamba','Muganza','Mugombwa','Mukindo','Musha','Ndora','Nyanza','Save'],'Huye':['Gishamvu','Huye','Karama','Kigoma','Kinazi','Maraba','Mbazi','Mukura','Ngoma','Ruhashya','Rusatira','Rwaniro','Simbi','Tumba'],'Kamonyi':['Gacurabwenge','Kamonyi','Kayenzi','Kayumbu','Mugina','Musambira','Ngamba','Nyamiyaga','Nyarubaka','Rugalika','Rukoma','Runda'],'Muhanga':['Cyeza','Kabacuzi','Kibangu','Kiyumba','Muhanga','Mushishiro','Nyamabuye','Nyamiyaga','Nyarusange','Rongi','Rugendabari','Shyogwe'],'Nyamagabe':['Buruhukiro','Cyanika','Gasaka','Gatare','Kaduha','Kamegeri','Kibirizi','Kibumbwe','Kitabi','Mbazi','Mugano','Musange','Musebeya','Mushubi','Nkomane','Tare','Uwinkingi'],'Nyanza':['Busasamana','Busengo','Cyabakamyi','Kibirizi','Kigoma','Mukingo','Muyira','Ntyazo','Nyagisozi','Rwabicuma'],'Nyaruguru':['Busanze','Cyahinda','Kibeho','Kivu','Mata','Muganza','Munini','Ngera','Ngoma','Nyabimata','Nyagisozi','Ruheru','Ruramba','Rusenge'],'Ruhango':['Byimana','Kabagari','Kinazi','Kinihira','Mbuye','Mwendo','Ntongwe','Ruhango']}},
-  'Kigali City':{districts:{'Gasabo':['Bumbogo','Gatsata','Gikomero','Gisozi','Jabana','Jali','Kacyiru','Kimihurura','Kimironko','Kinyinya','Ndera','Nduba','Remera','Rusororo','Rutunga'],'Kicukiro':['Gahanga','Gatenga','Gikondo','Gitega','Kagarama','Kanombe','Kicukiro','Kigarama','Masaka','Niboye','Nyarugunga'],'Nyarugenge':['Gitega','Kanyinya','Kigali','Kimisagara','Mageragere','Muhima','Nyakabanda','Nyamirambo','Nyarugenge','Rwezamenyo']}},
+// ─── AFRICA LOCATION HIERARCHY ───
+// Country → Province/Region → District (expandable)
+const AFRICA_COUNTRIES={
+  'Rwanda':{provinces:{'Kigali City':['Gasabo','Kicukiro','Nyarugenge'],'Eastern Province':['Bugesera','Gatsibo','Kayonza','Kirehe','Ngoma','Nyagatare','Rwamagana'],'Western Province':['Karongi','Ngororero','Nyabihu','Nyamasheke','Rubavu','Rusizi','Rutsiro'],'Northern Province':['Burera','Gakenke','Gicumbi','Musanze','Rulindo'],'Southern Province':['Gisagara','Huye','Kamonyi','Muhanga','Nyamagabe','Nyanza','Nyaruguru','Ruhango']}},
+  'Uganda':{provinces:{'Central':['Kampala','Wakiso','Mukono','Buikwe','Kayunga'],'Eastern':['Jinja','Mbale','Soroti','Tororo','Iganga','Kamuli'],'Northern':['Gulu','Lira','Arua','Kitgum','Pader'],'Western':['Mbarara','Kabale','Fort Portal','Masaka','Hoima']}},
+  'Kenya':{provinces:{'Nairobi':['Nairobi CBD','Westlands','Kasarani','Embakasi'],'Central':['Kiambu','Nyeri','Muranga','Kirinyaga','Nyandarua'],'Rift Valley':['Nakuru','Uasin Gishu','Trans Nzoia','Kericho','Bomet'],'Nyanza':['Kisumu','Homa Bay','Migori','Kisii','Siaya'],'Eastern':['Meru','Embu','Machakos','Kitui','Makueni'],'Western':['Kakamega','Bungoma','Busia','Vihiga'],'Coast':['Mombasa','Kilifi','Kwale','Taita Taveta']}},
+  'Tanzania':{provinces:{'Dar es Salaam':['Ilala','Kinondoni','Temeke','Ubungo','Kigamboni'],'Arusha':['Arusha City','Arumeru','Karatu','Longido','Monduli','Ngorongoro'],'Mwanza':['Nyamagana','Ilemela','Kwimba','Magu','Misungwi','Sengerema'],'Dodoma':['Dodoma Urban','Bahi','Chamwino','Kondoa','Kongwa','Mpwapwa'],'Kilimanjaro':['Moshi Urban','Moshi Rural','Hai','Mwanga','Rombo','Same','Siha'],'Morogoro':['Morogoro Urban','Morogoro Rural','Kilosa','Kilombero','Mvomero','Ulanga'],'Kagera':['Bukoba Urban','Bukoba Rural','Biharamulo','Karagwe','Kyerwa','Muleba','Ngara','Missenyi']}},
+  'Burundi':{provinces:{'Bujumbura Mairie':['Mukaza','Ntahangwa','Muha'],'Gitega':['Gitega','Bugendana','Giheta','Itaba','Makebuko','Mutaho','Nyangungu','Ryansoro'],'Ngozi':['Ngozi','Busiga','Gashikanwa','Kiremba','Marangara','Mwumba','Nyamurenza','Ruhororo','Tangara'],'Kayanza':['Kayanza','Butaganzwa','Gatara','Giti','Kabarore','Muhanga','Muruta','Rango'],'Kirundo':['Kirundo','Bugabira','Bwambarangwe','Busoni','Gitobe','Kiremba','Ntega','Vumbi']}},
+  'DRC Congo':{provinces:{'Kinshasa':['Gombe','Lingwala','Kasa-Vubu','Ngiri-Ngiri','Barumbu','Lemba','Matete','Kisenso','Ndjili','Masina'],'Nord-Kivu':['Goma','Beni','Butembo','Masisi','Rutshuru','Walikale','Lubero','Nyiragongo'],'Sud-Kivu':['Bukavu','Uvira','Shabunda','Mwenga','Fizi','Kabare','Idjwi'],'Katanga':['Lubumbashi','Likasi','Kolwezi','Kamina','Kalemie','Moba']}},
+  'Ethiopia':{provinces:{'Addis Ababa':['Addis Ketema','Akaki Kaliti','Arada','Bole','Gullele','Kirkos','Kolfe Keranio','Lideta','Nifas Silk-Lafto','Yeka'],'Oromia':['Jimma','Dire Dawa','Adama','Shashemene','Bishoftu','Nekemte','Ambo'],'Amhara':['Bahir Dar','Gondar','Dessie','Debre Markos','Debre Birhan','Woldia'],'SNNPR':['Hawassa','Arba Minch','Wolaita Sodo','Dilla','Hosaena']}},
+  'Nigeria':{provinces:{'Lagos':['Lagos Island','Lagos Mainland','Ikeja','Eti-Osa','Alimosho','Kosofe','Mushin'],'Kano':['Kano Municipal','Fagge','Dala','Gwale','Tarauni','Nassarawa','Ungogo'],'Rivers':['Port Harcourt','Obio-Akpor','Okrika','Ogu-Bolo','Eleme','Tai','Gokana'],'Abuja FCT':['Abaji','Abuja Municipal','Bwari','Gwagwalada','Kuje','Kwali'],'Oyo':['Ibadan North','Ibadan South-East','Ibadan South-West','Ibadan North-East','Akinyele','Lagelu']}},
+  'Ghana':{provinces:{'Greater Accra':['Accra Metro','Tema','Ga East','Ga West','Adenta','Ashaiman','Ledzokuku'],'Ashanti':['Kumasi Metro','Oforikrom','Asokore Mampong','Kwadaso','Suame','Nhyiaeso','Bosomtwe'],'Western':['Sekondi-Takoradi','Ahanta West','Effia-Kwesimintsim','Prestea-Huni Valley'],'Eastern':['Koforidua','New Juaben South','Birim Central','Asuogyaman','Lower Manya Krobo']}},
+  'Zambia':{provinces:{'Lusaka':['Lusaka District','Chilanga','Chongwe','Kafue','Luangwa'],'Copperbelt':['Ndola','Kitwe','Mufulira','Chingola','Luanshya','Kalulushi','Chambishi'],'Southern':['Livingstone','Choma','Mazabuka','Monze','Namwala','Siavonga'],'Eastern':['Chipata','Petauke','Katete','Lundazi','Mambwe']}},
+  'Zimbabwe':{provinces:{'Harare':['Harare City','Chitungwiza','Epworth','Ruwa','Norton'],'Bulawayo':['Bulawayo City'],'Manicaland':['Mutare','Chipinge','Rusape','Nyanga','Buhera'],'Mashonaland East':['Marondera','Murehwa','Mudzi','Mutoko','Seke'],'Midlands':['Gweru','Kwekwe','Zvishavane','Shurugwi','Gokwe']}},
+  'South Africa':{provinces:{'Gauteng':['Johannesburg','Pretoria','Ekurhuleni','Tshwane','Centurion','Soweto'],'Western Cape':['Cape Town','Stellenbosch','George','Paarl','Worcester','Franschhoek'],'KwaZulu-Natal':['Durban','Pietermaritzburg','Richards Bay','Newcastle','Pinetown'],'Eastern Cape':['Port Elizabeth','East London','Mthatha','Bhisho','Queenstown']}},
+  'Mozambique':{provinces:{'Maputo City':['Kampfumo','Nlhamankulo','KaMavota','KaMubukwana','KaTembe','KaNyaka'],'Maputo Province':['Matola','Boane','Namaacha','Moamba','Manhiça'],'Gaza':['Xai-Xai','Chibuto','Chicualacuala','Chigubo','Chokwé'],'Sofala':['Beira','Buzi','Chibabava','Machanga','Marromeu']}},
+  'Malawi':{provinces:{'Central':['Lilongwe','Dowa','Kasungu','Mchinji','Nkhotakota','Ntcheu','Ntchisi','Salima','Dedza'],'Southern':['Blantyre','Chikwawa','Chiradzulu','Machinga','Mangochi','Mulanje','Mwanza','Nsanje','Thyolo','Zomba'],'Northern':['Mzuzu','Chitipa','Karonga','Likoma','Mzimba','Nkhata Bay','Rumphi']}},
+  'Other':{provinces:{'Other Region':['Other Location']}},
+};
+
+window.buildLocationPicker=function(containerId,onSelect){
+  const cont=document.getElementById(containerId);if(!cont)return;
+  // Store picker state on window keyed by containerId
+  window._pickerState=window._pickerState||{};
+  window._pickerState[containerId]={country:'',province:'',onSelect};
+  const cid=containerId;
+  cont.innerHTML='<div style="display:flex;flex-direction:column;gap:8px;">'
+    +'<select class="fi" id="lcp-c-'+cid+'" data-cid="'+cid+'" onchange="locPickCountry(this)">'
+    +'<option value="">Select country...</option>'
+    +Object.keys(AFRICA_COUNTRIES).map(c=>'<option value="'+c+'">'+c+'</option>').join('')
+    +'</select>'
+    +'<select class="fi" id="lcp-p-'+cid+'" data-cid="'+cid+'" disabled onchange="locPickProvince(this)">'
+    +'<option value="">Select province/region...</option></select>'
+    +'<select class="fi" id="lcp-d-'+cid+'" data-cid="'+cid+'" disabled onchange="locPickDistrict(this)">'
+    +'<option value="">Select district/city...</option></select>'
+    +'</div>';
+};
+
+window.locPickCountry=function(sel){
+  const cid=sel.dataset.cid,val=sel.value;
+  const ps=window._pickerState&&window._pickerState[cid];if(!ps)return;
+  ps.country=val;ps.province='';
+  const pSel=document.getElementById('lcp-p-'+cid);
+  const dSel=document.getElementById('lcp-d-'+cid);
+  if(!pSel)return;
+  pSel.innerHTML='<option value="">Select province/region...</option>'
+    +Object.keys(AFRICA_COUNTRIES[val]?.provinces||{}).map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+  pSel.disabled=false;
+  if(dSel){dSel.innerHTML='<option value="">Select district/city...</option>';dSel.disabled=true;}
+  if(ps.onSelect)ps.onSelect(val);
+};
+
+window.locPickProvince=function(sel){
+  const cid=sel.dataset.cid,val=sel.value;
+  const ps=window._pickerState&&window._pickerState[cid];if(!ps)return;
+  ps.province=val;
+  const dSel=document.getElementById('lcp-d-'+cid);
+  if(!dSel)return;
+  const districts=(AFRICA_COUNTRIES[ps.country]?.provinces||{})[val]||[];
+  dSel.innerHTML='<option value="">Select district/city...</option>'
+    +districts.map(d=>'<option value="'+d+'">'+d+'</option>').join('');
+  dSel.disabled=false;
+  if(ps.onSelect)ps.onSelect(val+', '+ps.country);
+};
+
+window.locPickDistrict=function(sel){
+  const cid=sel.dataset.cid,val=sel.value;
+  const ps=window._pickerState&&window._pickerState[cid];if(!ps)return;
+  const loc=val+', '+ps.province+', '+ps.country;
+  if(ps.onSelect)ps.onSelect(loc);
 };
 
 window.buildLocationPicker=function(containerId, onSelect){
@@ -653,7 +716,7 @@ window.openAuth=function(role){
   // Init location picker after render
   setTimeout(()=>{
     if(role!=='govt'){
-      buildLocationPicker('reg-loc-picker',loc=>{
+      buildLocationPicker('reg-loc-picker',function(loc){
         const el=document.getElementById('r-loc');
         const tel=document.getElementById('r-loc-text');
         if(el)el.value=loc;
@@ -1093,7 +1156,7 @@ function scrBrokerHome(){
 
 async function loadBrokerHome(){
   try{
-    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available'))).catch(()=>({docs:[]}));
     const listings=byDate(lSnap.docs.map(d=>({id:d.id,...d.data()})));window._lc=listings;
     const oSnap=await getDocs(query(collection(db,'offers'),where('brokerId','==',S.user.uid)));
     const offers=oSnap.docs.map(d=>d.data());
@@ -1560,15 +1623,16 @@ function scrGovtHome(){
 }
 
 async function loadGovtHome(){
-  // Set fallback content immediately so nothing stays blank
-  ['gov-supply-card','gov-districts-card','gov-alerts-card'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el&&el.innerHTML.includes('loading-inline'))
-      el.innerHTML='<div class="ct">Loading...</div><div style="padding:10px 0;font-size:12px;color:var(--g5);">Fetching data...</div>';
-  });
+  const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' Province';
+  // Show placeholders immediately — never leave cards blank
+  const el=id=>document.getElementById(id);
+  const setCard=(id,title,body)=>{const c=el(id);if(c)c.innerHTML='<div class="ct">'+title+'</div>'+body;};
+  setCard('gov-supply-card','Supply by crop — '+regionLabel,'<div style="padding:10px 0;font-size:12px;color:var(--g5);">Loading...</div>');
+  setCard('gov-districts-card','Top producing districts','<div style="padding:10px 0;font-size:12px;color:var(--g5);">Loading...</div>');
+  setCard('gov-alerts-card','Active alerts','<div style="padding:10px 0;font-size:12px;color:var(--g5);">Loading...</div>');
   try{
     // ── Users ──
-    const uSnap=await getDocs(collection(db,'users'));
+    const uSnap=await getDocs(collection(db,'users')).catch(()=>({docs:[]}));
     let users=uSnap.docs.map(d=>d.data());
     if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
     const farmers=users.filter(u=>u.role==='farmer');
@@ -1576,13 +1640,13 @@ async function loadGovtHome(){
     const transporters=users.filter(u=>u.role==='transporter');
 
     // ── Listings ──
-    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available'))).catch(()=>({docs:[]}));
     let listings=lSnap.docs.map(d=>d.data());
     if(S.govtRegion!=='all')listings=listings.filter(l=>l.province===S.govtRegion||getProvince(l.loc||'')===S.govtRegion);
     const totalKg=listings.reduce((s,l)=>s+(l.qty||0),0);
 
     // ── Transactions ──
-    const txSnap=await getDocs(collection(db,'transactions'));
+    const txSnap=await getDocs(collection(db,'transactions')).catch(()=>({docs:[]}));
     let txs=txSnap.docs.map(d=>d.data());
 
     // ── Stats ──
@@ -1723,7 +1787,7 @@ function scrFamine(){
 async function loadFamine(){
   const cont=document.getElementById('famine-scores');if(!cont)return;
   try{
-    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+    const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available'))).catch(()=>({docs:[]}));
     const allListings=lSnap.docs.map(d=>d.data());
     const provinces=S.govtRegion==='all'?Object.keys(PROV_COORDS):[S.govtRegion];
 
@@ -1864,15 +1928,27 @@ window.prefillSMS=function(elOrText){
 
 window.sendCustomSMS=async function(){
   const msg=document.getElementById('sms-msg')?.value.trim();
-  const target=document.getElementById('sms-target')?.value;
+  const target=document.getElementById('sms-target')?.value||'all';
   if(!msg){toast('Please type a message.');return;}
-  // Log to Firestore for admin review
-  await addDoc(collection(db,'sms_queue'),{
-    msg,target,region:S.govtRegion,
-    sentBy:'govt',sentAt:serverTimestamp(),status:'queued',
-  }).catch(()=>{});
-  toast("✅ Broadcast queued! Will be sent via Africa's Talking SMS API.");
-  document.getElementById('sms-msg').value='';
+  const btn=document.querySelector('#screen-app .btn-r.btn-full')||document.activeElement;
+  if(btn&&btn.tagName==='BUTTON'){btn.disabled=true;btn.textContent='Sending...';}
+  try{
+    const uSnap=await getDocs(collection(db,'users'));
+    let users=uSnap.docs.map(d=>({id:d.id,...d.data()}));
+    if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
+    if(target!=='all')users=users.filter(u=>u.role===target);
+    const batch=users.slice(0,200);
+    await Promise.all(batch.map(u=>addDoc(collection(db,'admin_messages'),{
+      toUid:u.uid||u.id,fromAdmin:true,msgType:'official',
+      text:'📢 Government Notice: '+msg,
+      region:S.govtRegion,sentBy:'govt',read:false,
+      createdAt:serverTimestamp(),
+    }).catch(()=>{})));
+    toast('✅ Alert sent to '+batch.length+' users — visible in their Chat tab.');
+    document.getElementById('sms-msg').value='';
+    const cc=document.getElementById('sms-char-count');if(cc)cc.textContent='(0/160 chars)';
+  }catch(e){toast('❌ Error: '+e.message);}
+  finally{if(btn&&btn.tagName==='BUTTON'){btn.disabled=false;btn.textContent='📢 Send alert';}}
 };
 
 async function loadSMSStats(){
@@ -1920,7 +1996,19 @@ window.submitAlert=async function(){
   if(!text){toast('Please enter alert text.');return;}
   await addDoc(collection(db,'govt_alerts'),{text,sev,region,createdAt:serverTimestamp()});
   logEvent(analytics,'alert_published',{severity:sev,region});
-  closeModal();toast('✅ Alert published to '+region+'!');loadGovtHome();
+  // Notify all users in region via chat (admin_messages)
+  try{
+    const uSnap=await getDocs(collection(db,'users'));
+    const users=uSnap.docs.map(d=>({id:d.id,...d.data()})).filter(u=>region==='all'||u.province===region);
+    const sevEmoji=sev==='red'?'🔴':sev==='amber'?'🟡':'🟢';
+    await Promise.all(users.slice(0,200).map(u=>addDoc(collection(db,'admin_messages'),{
+      toUid:u.uid||u.id,fromAdmin:true,
+      msgType:sev==='red'?'warning':'official',
+      text:sevEmoji+' Government Alert: '+text,
+      region,read:false,createdAt:serverTimestamp(),
+    }).catch(()=>{})));
+  }catch(e){}
+  closeModal();toast('✅ Alert published and users notified in Chat!');loadGovtHome();
 };
 
 // ─── PROFILE ───
@@ -2075,10 +2163,12 @@ function lcard(l,viewer){
   if(!window._lc)window._lc=[];if(!window._lc.find(x=>x.id===l.id))window._lc.push(l);
   const avail=(l.qty||0)-(l.reserved||0);
   const stat=l.status==='available'?`<span class="badge bg">Available</span>${l.reserved>0?` <span class="qty-res">${l.reserved.toLocaleString()} kg pending offers</span>`:''}`:'<span class="badge bgr">Sold</span>';
-  // icon = photo URL (from admin upload), emoji = text emoji (fallback)
-  const iconHtml=l.icon&&l.icon.startsWith('http')
-    ?`<img src="${l.icon}" style="width:46px;height:46px;border-radius:var(--rsm);object-fit:cover;" alt="${l.crop}">`
-    :(l.emoji||l.icon||'🌾');
+  // icon lookup: use listing's own photo URL, or crop icon from admin, or emoji fallback
+  const cropMeta=CROPS.find(c=>c.name===l.crop)||{};
+  const iconUrl=(l.icon&&l.icon.startsWith('http'))?l.icon:(cropMeta.icon&&cropMeta.icon.startsWith('http'))?cropMeta.icon:null;
+  const iconHtml=iconUrl
+    ?`<img src="${iconUrl}" style="width:46px;height:46px;border-radius:var(--rsm);object-fit:cover;" alt="${l.crop}">`
+    :(l.emoji||cropMeta.emoji||'🌾');
   const act=viewer==='farmer'
     ?`<button class="btn btn-og btn-sm" onclick="toast('${l.crop} · ${l.qty?.toLocaleString()} kg · ${l.price} RWF/kg')">View</button>`
     :`<div style="display:flex;gap:6px;align-items:center;">
@@ -2723,7 +2813,7 @@ function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const
 
 function initPostPickers(){
   setTimeout(()=>{
-    buildLocationPicker('post-loc-picker',loc=>{
+    buildLocationPicker('post-loc-picker',function(loc){
       const el=document.getElementById('p-loc');
       const tel=document.getElementById('p-loc-text');
       if(el)el.value=loc;
