@@ -719,11 +719,10 @@ function enterApp(){
     `<button class="bn" id="bn-${n.id}" onclick="showScr('${n.id}')"><span class="ni">${n.i}</span><span class="nl">${t(n.k)||n.k}</span></button>`
   ).join('');
   showPage('pg-app');
-  // Show onboarding on first login
+  showScr(conf.nav[0].id);
+  // Show onboarding overlay on first login only (non-blocking)
   if(!S.profile.onboarded){
-    setTimeout(()=>showOnboarding(),400);
-  }else{
-    showScr(conf.nav[0].id);
+    setTimeout(()=>showOnboarding(),600);
   }
 }
 
