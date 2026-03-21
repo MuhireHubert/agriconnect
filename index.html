@@ -235,7 +235,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
 </head>
 <body>
 
-<div class="page show" id="pg-load">
+<div class="page" id="pg-load">
   <div class="load-wrap">
     <div class="load-icon">🌾</div>
     <div class="load-t">AgriConnect</div>
@@ -244,7 +244,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
   </div>
 </div>
 
-<div class="page" id="pg-land">
+<div class="page show" id="pg-land">
   <div class="lang-row">
     <button class="lang-btn active" onclick="setLang('en')">EN</button>
     <button class="lang-btn" onclick="setLang('rw')">RW</button>
@@ -2560,8 +2560,12 @@ window.closeModal=function(e){if(!e||e.target===document.getElementById('modal')
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
 function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
 
-// Boot — show landing immediately, no waiting for Firebase
-showPage('pg-land');
+// Boot — landing page already shown via HTML class
+// onAuthStateChanged will upgrade to app if session exists
+
+window.addEventListener('error', e => {
+  console.error('AgriConnect boot error:', e.message, e.filename, e.lineno);
+});
 
 // ═══════════════════════════════════════════════════
 // ONBOARDING — first-time guide for each role
