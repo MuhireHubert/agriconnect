@@ -791,7 +791,7 @@ function scrPost(){
       <div class="fg"><label class="fl">Quantity (kg)</label><input class="fi" id="p-qty" type="number" placeholder="e.g. 1000" min="1" inputmode="numeric"></div>
       <div class="fg"><label class="fl">Price (RWF/kg)</label><input class="fi" id="p-price" type="number" placeholder="e.g. 280" min="1" inputmode="numeric"></div>
     </div>
-    <div class="fg"><label class="fl">Location</label><input class="fi" id="p-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province" value="${S.profile.loc||''}"></div>
+    <div class="fg"><label class="fl">Location</label><input class="fi" id="p-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province" value="${S.profile.loc||'x'}"></div>
     <div class="fg"><label class="fl">Ready from</label><input class="fi" id="p-date" type="date"></div>
     <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" id="p-notes" type="text" placeholder="e.g. freshly harvested, dry stored"></div>
     <div class="fg">
@@ -896,9 +896,9 @@ async function loadOffers(){
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-g btn-sm" style="flex:1;min-width:100px;" onclick="acceptOffer('${o.id}')">Accept</button>
-          <button class="btn btn-og btn-sm" style="flex:1;min-width:100px;" onclick="openCounterOfferModal('${o.id}','${o.price}','${o.qty}','${o.cropName||''}')">Counter</button>
+          <button class="btn btn-og btn-sm" style="flex:1;min-width:100px;" onclick="openCounterOfferModal('${o.id}','${o.price}','${o.qty}','${o.cropName||'?'}')">Counter</button>
           <button class="btn btn-og btn-sm" style="flex:1;min-width:80px;" onclick="declineOffer('${o.id}')">Decline</button>
-          <button class="btn btn-og btn-sm" onclick="openChatFromListing('${o.listingId}','${S.user?.uid||''}','','${o.cropName||''}')">💬</button>
+          <button class="btn btn-og btn-sm" onclick="openChatFromListing('${o.listingId}','${S.user?.uid||'?'}','','${o.cropName||'?'}')">💬</button>
         </div></div>`;
     });
     if(history.length>0){
@@ -1175,7 +1175,7 @@ window.openOfferModal=async function(lid){
       <div id="offer-total" style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--g5);margin-bottom:4px;"></div>
       <div class="mact">
         <button class="btn btn-og" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-b" id="offer-sub" onclick="submitOffer('${lid}','${fresh.userId||''}','${fresh.crop||''}','${fresh.farmerName||''}',${avail})">Send offer</button>
+        <button class="btn btn-b" id="offer-sub" onclick="submitOffer('${lid}','${fresh.userId||'?'}','${fresh.crop||'?'}','${fresh.farmerName||'?'}',${avail})">Send offer</button>
       </div>`;
     calcOfferTotal();
   }catch(e){
@@ -1727,41 +1727,43 @@ async function loadFamine(){
 
 function scrSMS(){
   const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1);
-  return`<div class="sh2"><span class="st">SMS Broadcast</span><span class="sc2" style="font-size:11px;color:var(--g5);">📍 ${regionLabel}</span></div>
-  <div class="sg" style="margin-bottom:14px;">
-    <div class="sb"><div class="sl">Users in region</div><div class="sv" id="sms-u">—</div><div class="ss">total</div></div>
-    <div class="sb"><div class="sl">Farmers</div><div class="sv" id="sms-f">—</div><div class="ss">registered</div></div>
-    <div class="sb"><div class="sl">Brokers</div><div class="sv" id="sms-b">—</div><div class="ss">active</div></div>
-    <div class="sb"><div class="sl">Transporters</div><div class="sv" id="sms-t">—</div><div class="ss">registered</div></div>
-  </div>
-  <div class="card"><div class="ct">Quick alert templates</div>
-    ${[
-      {l:'Price surge alert',b:`AGRICONNECT [${regionLabel.toUpperCase()}]: Maize prices rising. Sell now at AgriConnect for best rates. muhirehubert.github.io/agriconnect`},
-      {l:'Food shortage warning',b:`GOV ALERT [${regionLabel.toUpperCase()}]: Food shortage risk detected. Register your surplus produce at AgriConnect immediately.`},
-      {l:'Transport opportunity',b:`AGRICONNECT: Transport jobs available in ${regionLabel}. Earn up to 40% more with return load matching. muhirehubert.github.io/agriconnect`},
-      {l:'Market day reminder',b:`AGRICONNECT: Check today's live crop prices before going to market. muhirehubert.github.io/agriconnect — free for farmers.`},
-    ].map(x=>`
-      <div style="margin-bottom:14px;border-bottom:1px solid var(--g1);padding-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;color:var(--g5);margin-bottom:6px;">${x.l}</div>
-        <div class="smspre"><div class="smsh">Preview · ${x.b.length} chars</div><div class="smsb">${x.b}</div></div>
-        <button class="btn btn-og btn-sm" style="margin-top:6px;" onclick="prefillSMS(decodeURIComponent(this.dataset.msg))" data-msg="${encodeURIComponent(x.b)}">Use this template</button>
-      </div>`).join('')}
-  </div>
-  <div class="card"><div class="ct">Custom broadcast</div>
-    <div class="fg"><label class="fl">Target group</label>
-      <select class="fi" id="sms-target">
-        <option value="all">All users in ${regionLabel}</option>
-        <option value="farmer">Farmers only</option>
-        <option value="broker">Brokers only</option>
-        <option value="transporter">Transporters only</option>
-      </select>
-    </div>
-    <div class="fg"><label class="fl">Message <span id="sms-char-count" style="color:var(--g3);font-weight:400;">(0/160 chars)</span></label>
-      <textarea class="fi" id="sms-msg" rows="4" maxlength="160" placeholder="Type your message..." oninput="document.getElementById('sms-char-count').textContent='('+this.value.length+'/160 chars)'"></textarea>
-    </div>
-    <button class="btn btn-r btn-full" onclick="sendCustomSMS()">📱 Send broadcast to ${regionLabel}</button>
-  </div>
-  <div style="font-size:10px;color:var(--g3);text-align:center;padding:8px;">SMS delivery powered by Africa's Talking API (coming soon) · Currently queued for review</div>`;
+  const templates=[
+    {l:'Price surge alert',b:'AGRICONNECT: Maize prices rising. Sell now at AgriConnect for best rates. muhirehubert.github.io/agriconnect'},
+    {l:'Food shortage warning',b:'GOV ALERT: Food shortage risk detected. Register your surplus produce at AgriConnect immediately.'},
+    {l:'Transport opportunity',b:'AGRICONNECT: Transport jobs available. Earn up to 40% more with return load matching. muhirehubert.github.io/agriconnect'},
+    {l:'Market day reminder',b:"AGRICONNECT: Check today's live crop prices before going to market. Free for farmers."},
+  ];
+  const tmplHtml=templates.map((x,i)=>{
+    window._smsTemplates=window._smsTemplates||[];
+    window._smsTemplates[i]=x.b;
+    return '<div style="margin-bottom:14px;border-bottom:1px solid var(--g1);padding-bottom:14px;">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--g5);margin-bottom:6px;">'+x.l+'</div>'
+      +'<div class="smspre"><div class="smsh">Preview</div><div class="smsb">'+x.b+'</div></div>'
+      +'<button class="btn btn-og btn-sm" style="margin-top:6px;" onclick="prefillSMS(window._smsTemplates['+i+'])">Use this template</button>'
+      +'</div>';
+  }).join('');
+  return'<div class="sh2"><span class="st">SMS Broadcast</span><span class="sc2" style="font-size:11px;color:var(--g5);">📍 '+regionLabel+'</span></div>'
+  +'<div class="sg" style="margin-bottom:14px;">'
+  +'<div class="sb"><div class="sl">Users in region</div><div class="sv" id="sms-u">—</div><div class="ss">total</div></div>'
+  +'<div class="sb"><div class="sl">Farmers</div><div class="sv" id="sms-f">—</div><div class="ss">registered</div></div>'
+  +'<div class="sb"><div class="sl">Brokers</div><div class="sv" id="sms-b">—</div><div class="ss">active</div></div>'
+  +'<div class="sb"><div class="sl">Transporters</div><div class="sv" id="sms-t">—</div><div class="ss">registered</div></div>'
+  +'</div>'
+  +'<div class="card"><div class="ct">Quick alert templates</div>'+tmplHtml+'</div>'
+  +'<div class="card"><div class="ct">Custom broadcast</div>'
+  +'<div class="fg"><label class="fl">Target group</label>'
+  +'<select class="fi" id="sms-target">'
+  +'<option value="all">All users in '+regionLabel+'</option>'
+  +'<option value="farmer">Farmers only</option>'
+  +'<option value="broker">Brokers only</option>'
+  +'<option value="transporter">Transporters only</option>'
+  +'</select></div>'
+  +'<div class="fg"><label class="fl">Message <span id="sms-char-count" style="color:var(--g3);font-weight:400;">(0/160 chars)</span></label>'
+  +'<textarea class="fi" id="sms-msg" rows="4" maxlength="160" placeholder="Type your message..." oninput="document.getElementById(\'sms-char-count\').textContent=\'(\'+this.value.length+\'/160 chars)\'"></textarea>'
+  +'</div>'
+  +'<button class="btn btn-r btn-full" onclick="sendCustomSMS()">📱 Send broadcast to '+regionLabel+'</button>'
+  +'</div>'
+  +'<div style="font-size:10px;color:var(--g3);text-align:center;padding:8px;">SMS delivery powered by Africa\'s Talking API (coming soon)</div>';
 }
 
 window.prefillSMS=function(elOrText){
@@ -1780,7 +1782,7 @@ window.sendCustomSMS=async function(){
     msg,target,region:S.govtRegion,
     sentBy:'govt',sentAt:serverTimestamp(),status:'queued',
   }).catch(()=>{});
-  toast('✅ Broadcast queued! Will be sent via Africa's Talking SMS API.');
+  toast("✅ Broadcast queued! Will be sent via Africa's Talking SMS API.");
   document.getElementById('sms-msg').value='';
 };
 
@@ -1838,7 +1840,7 @@ function scrProfile(){
   const colors={farmer:'var(--gm)',broker:'var(--bl)',transporter:'var(--am)',govt:'var(--rd)'};
   return`<div class="phero">
     <div class="pavatar" style="background:${colors[u.role]||'var(--gm)'};">${init.toUpperCase()}</div>
-    <div class="pname">${u.fname} ${u.lname||''}</div><div class="ploc">${u.loc||''}</div>
+    <div class="pname">${u.fname} ${u.lname||'x'}</div><div class="ploc">${u.loc||'x'}</div>
     ${u.phone?`<div class="mpill">📱 ${u.phone}</div>`:''}
     ${u.momo?`<div class="mpill">💰 MoMo: ${u.momo}</div>`:''}
   </div>
@@ -1849,9 +1851,9 @@ function scrProfile(){
     ${u.capacity?`<div class="sb"><div class="sl">Capacity</div><div class="sv">${u.capacity}t</div></div>`:''}
   </div>
   <div class="card"><div class="ct">Update profile</div>
-    <div class="fg"><label class="fl">Location</label><input class="fi" id="up-loc" type="text" value="${u.loc||''}"></div>
-    <div class="fg"><label class="fl">MoMo number</label><div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="up-momo" type="tel" value="${(u.momo||'').replace('+250','')}" maxlength="9" inputmode="numeric"></div></div>
-    ${u.role==='transporter'?`<div class="fg"><label class="fl">Vehicle</label><input class="fi" id="up-vehicle" type="text" value="${u.vehicle||''}"></div><div class="fg"><label class="fl">Capacity (tonnes)</label><input class="fi" id="up-cap" type="number" value="${u.capacity||''}"></div>`:''}
+    <div class="fg"><label class="fl">Location</label><input class="fi" id="up-loc" type="text" value="${u.loc||'x'}"></div>
+    <div class="fg"><label class="fl">MoMo number</label><div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="up-momo" type="tel" value="${(u.momo||'x').replace('+250','')}" maxlength="9" inputmode="numeric"></div></div>
+    ${u.role==='transporter'?`<div class="fg"><label class="fl">Vehicle</label><input class="fi" id="up-vehicle" type="text" value="${u.vehicle||'x'}"></div><div class="fg"><label class="fl">Capacity (tonnes)</label><input class="fi" id="up-cap" type="number" value="${u.capacity||'x'}"></div>`:''}
     <div class="fg"><label class="fl">Language</label>
       <select class="fi" id="up-lang" onchange="setLang(this.value)">
         <option value="en" ${S.lang==='en'?'selected':''}>English</option>
@@ -2560,8 +2562,16 @@ window.closeModal=function(e){if(!e||e.target===document.getElementById('modal')
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
 function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
 
-// Boot — landing page already shown via HTML class
-// onAuthStateChanged will upgrade to app if session exists
+window.markAdminMsgsRead=async function(){
+  if(!S.user)return;
+  try{
+    const snap=await getDocs(query(collection(db,'admin_messages'),where('toUid','==',S.user.uid),where('read','==',false)));
+    for(const d of snap.docs) await updateDoc(doc(db,'admin_messages',d.id),{read:true}).catch(()=>{});
+    toast('Messages marked as read.');loadChatList();
+  }catch(e){console.error(e);}
+};
+
+// Boot — landing page shown via HTML, onAuthStateChanged upgrades to app if session exists
 
 window.addEventListener('error', e => {
   console.error('AgriConnect boot error:', e.message, e.filename, e.lineno);
