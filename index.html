@@ -553,43 +553,7 @@ window.locPickDistrict=function(sel){
   if(ps.onSelect)ps.onSelect(loc);
 };
 
-window.buildLocationPicker=function(containerId, onSelect){
-  const cont=document.getElementById(containerId);
-  if(!cont)return;
-  let province='',district='',sector='';
-  cont.innerHTML='<div style="display:flex;flex-direction:column;gap:8px;">'
-    +'<select class="fi" id="loc-province" onchange="window._locOnProvince && window._locOnProvince(this.value)">'
-    +'<option value="">Select province...</option>'
-    +Object.keys(RW_LOCATIONS).map(p=>'<option value="'+p+'">'+p+'</option>').join('')
-    +'</select>'
-    +'<select class="fi" id="loc-district" disabled onchange="window._locOnDistrict && window._locOnDistrict(this.value)"><option value="">Select district...</option></select>'
-    +'<select class="fi" id="loc-sector" disabled onchange="window._locOnSector && window._locOnSector(this.value)"><option value="">Select sector...</option></select>'
-    +'</div>';
-  window._locOnProvince=function(p){
-    province=p;district='';sector='';
-    const dSel=document.getElementById('loc-district');
-    const sSel=document.getElementById('loc-sector');
-    dSel.innerHTML='<option value="">Select district...</option>'+Object.keys(RW_LOCATIONS[p]?.districts||{}).map(d=>'<option value="'+d+'">'+d+'</option>').join('');
-    dSel.disabled=false;
-    sSel.innerHTML='<option value="">Select sector...</option>';
-    sSel.disabled=true;
-    if(onSelect)onSelect('');
-  };
-  window._locOnDistrict=function(d){
-    district=d;sector='';
-    const sSel=document.getElementById('loc-sector');
-    const provData=RW_LOCATIONS[province];
-    const sectors=provData?.districts[d]||[];
-    sSel.innerHTML='<option value="">Select sector...</option>'+sectors.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
-    sSel.disabled=false;
-    if(onSelect)onSelect(d+', '+province);
-  };
-  window._locOnSector=function(s){
-    sector=s;
-    const loc=s+', '+district+', '+province;
-    if(onSelect)onSelect(loc);
-  };
-};
+// (Africa picker already defined above)
 
 function getProvince(loc){
   if(!loc)return'other';const l=loc.toLowerCase();
