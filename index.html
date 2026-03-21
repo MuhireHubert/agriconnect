@@ -778,7 +778,7 @@ function enterApp(){
   document.getElementById('tb-loc').textContent=p.loc||'';
   document.getElementById('tb-role').textContent=conf.role;
   document.getElementById('bnav').innerHTML=conf.nav.map(n=>
-    '<button class="bn" id="bn-'+n.id+'" onclick="showScr(''+n.id+'')"><span class="ni">'+n.i+'</span><span class="nl">'+( t(n.k)||n.k)+'</span><span class="nbadge" id="badge-'+n.id+'" style="display:none;position:absolute;top:6px;right:calc(50% - 18px);background:var(--rd);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center;"></span></button>'
+    `<button class="bn" id="bn-${n.id}" onclick="showScr('${n.id}')"><span class="ni">${n.i}</span><span class="nl">${t(n.k)||n.k}</span><span class="nbadge" id="badge-${n.id}" style="display:none;position:absolute;top:6px;right:calc(50% - 18px);background:var(--rd);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center;"></span></button>`
   ).join('');
   // Make nav buttons position:relative for badge positioning
   document.querySelectorAll('.bn').forEach(b=>b.style.position='relative');
@@ -857,7 +857,7 @@ function scrPost(){
       <div class="fg"><label class="fl">Quantity (kg)</label><input class="fi" id="p-qty" type="number" placeholder="e.g. 1000" min="1" inputmode="numeric"></div>
       <div class="fg"><label class="fl">Price (RWF/kg)</label><input class="fi" id="p-price" type="number" placeholder="e.g. 280" min="1" inputmode="numeric"></div>
     </div>
-    <div class="fg"><label class="fl">Location</label><div id="post-loc-picker"></div><input class="fi" id="p-loc" type="hidden" value="${S.profile.loc||}"><input class="fi" id="p-loc-text" type="text" placeholder="e.g. Nyagatare" style="margin-top:6px;" value="${S.profile.loc||}" oninput="document.getElementById('p-loc').value=this.value"></div>
+    <div class="fg"><label class="fl">Location</label><div id="post-loc-picker"></div><input class="fi" id="p-loc" type="hidden" value="${S.profile.loc||''}"><input class="fi" id="p-loc-text" type="text" placeholder="e.g. Nyagatare" style="margin-top:6px;" value="${S.profile.loc||''}" oninput="document.getElementById('p-loc').value=this.value"></div>
     <div class="fg"><label class="fl">Ready from</label><input class="fi" id="p-date" type="date"></div>
     <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" id="p-notes" type="text" placeholder="e.g. freshly harvested, dry stored"></div>
     <div class="fg">
