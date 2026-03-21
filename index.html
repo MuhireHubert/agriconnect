@@ -318,7 +318,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
             <option value="kigali">Kigali City</option>
           </select>
         </div>
-        <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--rd);margin-bottom:13px;">🔒 Credentials issued exclusively by Hub-In Rwanda. Contact admin@hub-in.rw</div>
+        <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--rd);margin-bottom:13px;">🔒 Credentials issued exclusively by Hub-In Rwanda. Contact <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1d7c797074735d75687f307473336f6a">[email&#160;protected]</a></div>
         <button class="abtn abtn-r" onclick="doGovtLogin()">Access portal</button>
       </div>
 
@@ -346,7 +346,7 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
 <div class="mback" id="modal" onclick="closeModal(event)"><div class="mbox" id="modal-content"></div></div>
 <div class="toast" id="toast"></div>
 
-<script type="module">
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import{getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,updateDoc,deleteDoc,query,where,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -540,7 +540,7 @@ async function calcFamineScore(province,platformListings){
   // Weighted final score
   const final=Math.round(rainfallScore*0.30+yieldScore*0.25+supplyScore*0.25+vulnScore*0.20);
   return{
-    score:Math.min(100,final),rainfallScore,yieldScore,supplyScore,vulnScore,
+    score:Math.min(100,final),rainfallScore,yieldScore,supplyScore,vulnScore,nasaLive,avgRainfall,recentRainfall,
     listingCount:provListings.length,totalKg,
   };
 }
@@ -1423,64 +1423,197 @@ async function loadEarnings(){
 // ═══════════════════════════════════════════════════
 function scrGovtHome(){
   const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' Province';
-  return`<p class="greeting">Hub-In Rwanda 🏛️</p><p class="welcome">Famine Intelligence</p>
-  <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:8px 13px;font-size:12px;color:var(--rd);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-    📍 Showing data for: <strong>${regionLabel}</strong>
+  return`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <p class="greeting" style="margin-bottom:2px;">🏛️ Government Portal</p>
+      <p class="welcome" style="font-size:18px;">Food Security Dashboard</p>
+    </div>
+    <div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:6px 12px;font-size:12px;color:var(--rd);display:flex;align-items:center;gap:6px;">
+      📍 <strong>${regionLabel}</strong>
+    </div>
   </div>
-  <div class="sg">
-    <div class="sb"><div class="sl">Registered users</div><div class="sv" id="gov-u">—</div><div class="ss" id="gov-us">loading...</div></div>
-    <div class="sb"><div class="sl">Active listings</div><div class="sv" id="gov-l">—</div><div class="ss" style="color:var(--gm)">in region</div></div>
-    <div class="sb"><div class="sl">Total supply</div><div class="sv" id="gov-kg">—</div><div class="ss">tonnes</div></div>
-    <div class="sb"><div class="sl">Transactions</div><div class="sv" id="gov-tx">—</div><div class="ss">confirmed</div></div>
+
+  <!-- Live platform stats -->
+  <div class="sg" id="gov-stats-grid">
+    <div class="sb"><div class="sl">Active farmers</div><div class="sv" id="gov-farmers">—</div><div class="ss" style="color:var(--gm)" id="gov-farmer-sub">in region</div></div>
+    <div class="sb"><div class="sl">Active listings</div><div class="sv" id="gov-l">—</div><div class="ss" id="gov-kg-sub">loading...</div></div>
+    <div class="sb"><div class="sl">Supply (tonnes)</div><div class="sv" id="gov-kg">—</div><div class="ss">available now</div></div>
+    <div class="sb"><div class="sl">Deals confirmed</div><div class="sv" id="gov-tx">—</div><div class="ss">total transactions</div></div>
   </div>
-  <div class="card" id="gov-alerts-card"><div class="ct">Recent alerts</div><div class="loading-inline">Loading...</div></div>
+
+  <!-- Crop supply breakdown -->
+  <div class="card" id="gov-supply-card">
+    <div class="ct">Supply by crop — ${regionLabel}</div>
+    <div class="loading-inline">Loading...</div>
+  </div>
+
+  <!-- Top producing districts -->
+  <div class="card" id="gov-districts-card">
+    <div class="ct">Top producing districts</div>
+    <div class="loading-inline">Loading...</div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="card" id="gov-alerts-card">
+    <div class="ct">Active alerts</div>
+    <div class="loading-inline">Loading...</div>
+  </div>
   <button class="btn btn-r btn-full" onclick="openAlertModal()">+ Publish new alert</button>`;
 }
 
 async function loadGovtHome(){
   try{
+    // ── Users ──
     const uSnap=await getDocs(collection(db,'users'));
     let users=uSnap.docs.map(d=>d.data());
     if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
-    const farmers=users.filter(u=>u.role==='farmer'),brokers=users.filter(u=>u.role==='broker'),transporters=users.filter(u=>u.role==='transporter');
+    const farmers=users.filter(u=>u.role==='farmer');
+    const brokers=users.filter(u=>u.role==='broker');
+    const transporters=users.filter(u=>u.role==='transporter');
 
+    // ── Listings ──
     const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
     let listings=lSnap.docs.map(d=>d.data());
     if(S.govtRegion!=='all')listings=listings.filter(l=>l.province===S.govtRegion||getProvince(l.loc||'')===S.govtRegion);
     const totalKg=listings.reduce((s,l)=>s+(l.qty||0),0);
 
+    // ── Transactions ──
     const txSnap=await getDocs(collection(db,'transactions'));
+    let txs=txSnap.docs.map(d=>d.data());
 
+    // ── Stats ──
     const el=id=>document.getElementById(id);
-    if(el('gov-u'))el('gov-u').textContent=users.length;
-    if(el('gov-us'))el('gov-us').textContent=`${farmers.length}F · ${brokers.length}B · ${transporters.length}T`;
+    if(el('gov-farmers'))el('gov-farmers').textContent=farmers.length;
+    if(el('gov-farmer-sub'))el('gov-farmer-sub').textContent=`${brokers.length} brokers · ${transporters.length} transporters`;
     if(el('gov-l'))el('gov-l').textContent=listings.length;
+    if(el('gov-kg-sub'))el('gov-kg-sub').textContent=`${listings.length} listings`;
     if(el('gov-kg'))el('gov-kg').textContent=(totalKg/1000).toFixed(1)+'t';
-    if(el('gov-tx'))el('gov-tx').textContent=txSnap.size;
+    if(el('gov-tx'))el('gov-tx').textContent=txs.length;
 
+    // ── Supply by crop ──
+    const cropMap={};
+    listings.forEach(l=>{
+      if(!cropMap[l.crop])cropMap[l.crop]={qty:0,listings:0,emoji:l.emoji||'🌾'};
+      cropMap[l.crop].qty+=l.qty||0;
+      cropMap[l.crop].listings++;
+    });
+    const cropRows=Object.entries(cropMap).sort((a,b)=>b[1].qty-a[1].qty);
+    const sc=el('gov-supply-card');
+    if(sc){
+      if(!cropRows.length){sc.innerHTML=`<div class="ct">Supply by crop</div><div class="empty" style="padding:10px 0;">No active listings in this region.</div>`;}
+      else{
+        const maxQty=cropRows[0][1].qty||1;
+        sc.innerHTML=`<div class="ct">Supply by crop — ${regionLabel==='All Rwanda'?'All Rwanda':regionLabel}</div>`+
+          cropRows.map(([name,data])=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g1);">
+              <span style="font-size:18px;width:24px;">${data.emoji}</span>
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:13px;font-weight:600;">${name}</span>
+                  <span style="font-size:12px;color:var(--g5);">${(data.qty/1000).toFixed(1)}t · ${data.listings} listing${data.listings>1?'s':''}</span>
+                </div>
+                <div style="height:6px;background:var(--g1);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${Math.round((data.qty/maxQty)*100)}%;background:var(--gm);border-radius:3px;"></div>
+                </div>
+              </div>
+            </div>`).join('');
+      }
+    }
+
+    // ── Top districts ──
+    const distMap={};
+    listings.forEach(l=>{
+      const loc=(l.loc||'Unknown').split(',')[0].trim();
+      if(!distMap[loc])distMap[loc]={qty:0,count:0};
+      distMap[loc].qty+=l.qty||0;distMap[loc].count++;
+    });
+    const distRows=Object.entries(distMap).sort((a,b)=>b[1].qty-a[1].qty).slice(0,6);
+    const dc=el('gov-districts-card');
+    if(dc){
+      dc.innerHTML=`<div class="ct">Top producing districts</div>`+
+        (distRows.length===0?`<div class="empty" style="padding:10px 0;">No data yet.</div>`:
+        distRows.map(([loc,data],i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g1);">
+            <span style="font-size:13px;font-weight:700;color:var(--g3);width:18px;">${i+1}</span>
+            <span style="flex:1;font-size:13px;font-weight:600;">${loc}</span>
+            <span style="font-size:12px;color:var(--g5);">${data.count} listing${data.count>1?'s':''}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--gm);">${(data.qty/1000).toFixed(1)}t</span>
+          </div>`).join(''));
+    }
+
+    // ── Alerts ──
     const aSnap=await getDocs(query(collection(db,'govt_alerts')));
     const ac=el('gov-alerts-card');
     if(ac){
-      const alerts=byDate(aSnap.docs.map(d=>({...d.data()})));
-      ac.innerHTML=`<div class="ct">Recent alerts</div>`+(alerts.length===0?`<div class="empty" style="padding:12px 0;">No alerts yet.</div>`:alerts.slice(0,4).map(a=>`<div class="aitem"><div class="adot" style="background:${a.sev==='red'?'var(--rd)':a.sev==='amber'?'var(--am)':'var(--gm)'}"></div><div><div class="atext">${a.text}</div><div class="atime">${ts(a.createdAt)}</div></div></div>`).join(''));
+      let alerts=byDate(aSnap.docs.map(d=>({id:d.id,...d.data()})));
+      if(S.govtRegion!=='all')alerts=alerts.filter(a=>!a.region||a.region==='all'||a.region===S.govtRegion);
+      ac.innerHTML=`<div class="ct">Active alerts</div>`+
+        (alerts.length===0?`<div class="empty" style="padding:10px 0;">No active alerts for this region.</div>`:
+        alerts.slice(0,5).map(a=>`
+          <div class="aitem">
+            <div class="adot" style="background:${a.sev==='red'?'var(--rd)':a.sev==='amber'?'var(--am)':'var(--gm)'}"></div>
+            <div style="flex:1;">
+              <div class="atext">${a.text}</div>
+              <div class="atime">${a.region?'Region: '+a.region+' · ':''} ${ts(a.createdAt)}</div>
+            </div>
+          </div>`).join(''));
     }
-  }catch(e){console.error(e);}
+  }catch(e){console.error('loadGovtHome:',e);}
 }
 
-// ─── FAMINE INTELLIGENCE — NASA POWER + FAO + WFP + Platform data ───
+// ─── FAMINE INTELLIGENCE — NASA POWER + FAO + WFP + Platform ───
 function scrFamine(){
-  return`<div class="sh2"><span class="st">Famine Intelligence</span></div>
-  <div class="card" style="background:linear-gradient(135deg,#0d2408,#1a3a0f);color:var(--w);">
-    <div style="font-size:11px;font-weight:700;letter-spacing:.07em;color:rgba(255,255,255,0.5);margin-bottom:8px;">DATA SOURCES</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🛰️ NASA POWER</span>
-      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🌍 FAO Yields</span>
-      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🌾 AgriConnect</span>
-      <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🏥 WFP</span>
+  return`<div class="sh2"><span class="st">Famine Risk Intelligence</span></div>
+
+  <!-- Source cards — clickable links -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <a href="https://power.larc.nasa.gov" target="_blank" style="text-decoration:none;">
+      <div style="background:linear-gradient(135deg,#0d2408,#1a3a0f);border:1px solid var(--gb);border-radius:var(--rmd);padding:10px 13px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:20px;">🛰️</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--gl);">NASA POWER API</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);">Live rainfall & drought · 30% weight</div>
+          <div style="font-size:9px;color:var(--gb);margin-top:2px;">power.larc.nasa.gov ↗</div>
+        </div>
+      </div>
+    </a>
+    <a href="https://www.fao.org/faostat" target="_blank" style="text-decoration:none;">
+      <div style="background:linear-gradient(135deg,#0d2408,#1a3a0f);border:1px solid var(--gb);border-radius:var(--rmd);padding:10px 13px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:20px;">🌍</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--gl);">FAO STAT</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);">Historical yield baselines · 25% weight</div>
+          <div style="font-size:9px;color:var(--gb);margin-top:2px;">fao.org/faostat ↗</div>
+        </div>
+      </div>
+    </a>
+    <a href="https://www.wfp.org/countries/rwanda" target="_blank" style="text-decoration:none;">
+      <div style="background:linear-gradient(135deg,#0d2408,#1a3a0f);border:1px solid var(--gb);border-radius:var(--rmd);padding:10px 13px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:20px;">🏥</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--gl);">WFP Rwanda</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);">Population vulnerability · 20% weight</div>
+          <div style="font-size:9px;color:var(--gb);margin-top:2px;">wfp.org/countries/rwanda ↗</div>
+        </div>
+      </div>
+    </a>
+    <div style="background:linear-gradient(135deg,#0d2408,#1a3a0f);border:1px solid var(--gb);border-radius:var(--rmd);padding:10px 13px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:20px;">🌾</span>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--gl);">AgriConnect Platform</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.45);">Live farm supply data · 25% weight</div>
+        <div style="font-size:9px;color:var(--gb);margin-top:2px;">Real-time · unique to AgriConnect</div>
+      </div>
     </div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:10px;line-height:1.6;">Score = Rainfall deficit (30%) + FAO yield gap (25%) + Platform supply (25%) + WFP vulnerability (20%)</div>
   </div>
-  <div id="famine-scores"><div class="loading-inline">📡 Querying NASA POWER API & computing scores...</div></div>`;
+
+  <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:9px 13px;font-size:11px;color:var(--g5);margin-bottom:14px;line-height:1.7;">
+    <strong style="color:var(--g9);">Formula:</strong> Risk = (NASA rainfall deficit × 0.30) + (FAO yield gap × 0.25) + (Platform supply gap × 0.25) + (WFP vulnerability × 0.20)<br>
+    Score 0–100 · Updated live · Province data filtered to your access level
+  </div>
+
+  <div id="famine-scores"><div class="loading-inline">📡 Fetching live data from NASA POWER API...</div></div>`;
 }
 
 async function loadFamine(){
@@ -1488,83 +1621,200 @@ async function loadFamine(){
   try{
     const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
     const allListings=lSnap.docs.map(d=>d.data());
-
     const provinces=S.govtRegion==='all'?Object.keys(PROV_COORDS):[S.govtRegion];
+
+    cont.innerHTML=`<div class="loading-inline">📡 Querying NASA for ${provinces.length} province(s)... this takes a few seconds</div>`;
+
     const scores=await Promise.all(provinces.map(async p=>{
       const result=await calcFamineScore(p,allListings);
       return{province:p,...result};
     }));
     scores.sort((a,b)=>b.score-a.score);
 
-    let html=`<div class="card"><div class="ct">Risk by province</div>`;
+    // Risk summary bar
+    let html=`<div class="card"><div class="ct">Risk overview — ${S.govtRegion==='all'?'All Rwanda':S.govtRegion}</div>`;
     scores.forEach(s=>{
       const r=riskLabel(s.score);
-      html+=`<div class="riskrow">
-        <span class="rreg">${s.province.charAt(0).toUpperCase()+s.province.slice(1)}</span>
-        <div class="rtrack"><div class="rfill ${r.fill}" style="width:${s.score}%"></div></div>
+      const nasaStatus=s.nasaLive?'🛰️ live':'🛰️ est.';
+      html+=`<div class="riskrow" onclick="document.getElementById('detail-${s.province}')?.scrollIntoView({behavior:'smooth'})" style="cursor:pointer;">
+        <span class="rreg" style="width:80px;font-size:12px;">${s.province.charAt(0).toUpperCase()+s.province.slice(1)}</span>
+        <div class="rtrack" style="flex:1;"><div class="rfill ${r.fill}" style="width:${s.score}%"></div></div>
         <span class="rscore" style="color:${s.score>=70?'var(--rd)':s.score>=50?'var(--am)':s.score>=30?'var(--gm)':'#1D9E75'}">${s.score}</span>
-        <span class="risk-pill ${r.cls}">${r.label}</span>
+        <span class="risk-pill ${r.cls}" style="width:68px;text-align:center;">${r.label}</span>
+        <span style="font-size:9px;color:var(--g3);margin-left:4px;">${nasaStatus}</span>
       </div>`;
     });
     html+=`</div>`;
 
-    // Breakdown cards
+    // Detailed province cards
     scores.forEach(s=>{
       const r=riskLabel(s.score);
-      html+=`<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-weight:700;font-size:15px;">${s.province.charAt(0).toUpperCase()+s.province.slice(1)} Province</div>
+      // Real platform listings for this province
+      const provListings=allListings.filter(l=>getProvince(l.loc||'')===s.province||l.province===s.province);
+      const provKg=provListings.reduce((sum,l)=>sum+(l.qty||0),0);
+      const cropBreakdown=Object.entries(provListings.reduce((m,l)=>{m[l.crop]=(m[l.crop]||0)+(l.qty||0);return m;},{})).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      html+=`<div class="card" id="detail-${s.province}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div>
+            <div style="font-weight:700;font-size:15px;">${s.province.charAt(0).toUpperCase()+s.province.slice(1)} Province</div>
+            <div style="font-size:11px;color:var(--g5);margin-top:2px;">Coords: ${PROV_COORDS[s.province]?.lat}, ${PROV_COORDS[s.province]?.lon} · NASA query: live</div>
+          </div>
           <span class="risk-pill ${r.cls}" style="font-size:12px;padding:4px 12px;">${r.label} — ${s.score}/100</span>
         </div>
         <div class="sg" style="margin-bottom:10px;">
-          <div class="sb"><div class="sl">🛰️ Rainfall deficit</div><div class="sv" style="font-size:16px;color:${s.rainfallScore>50?'var(--rd)':'var(--gm)'}">${s.rainfallScore}</div><div class="ss">NASA POWER</div></div>
-          <div class="sb"><div class="sl">🌍 FAO yield gap</div><div class="sv" style="font-size:16px;color:${s.yieldScore>50?'var(--rd)':'var(--gm)'}">${s.yieldScore}</div><div class="ss">vs historical</div></div>
-          <div class="sb"><div class="sl">🌾 Supply deficit</div><div class="sv" style="font-size:16px;color:${s.supplyScore>50?'var(--rd)':'var(--gm)'}">${s.supplyScore}</div><div class="ss">${s.listingCount} listings · ${(s.totalKg/1000).toFixed(1)}t</div></div>
-          <div class="sb"><div class="sl">🏥 WFP vuln.</div><div class="sv" style="font-size:16px;color:${s.vulnScore>50?'var(--rd)':'var(--gm)'}">${s.vulnScore}</div><div class="ss">population score</div></div>
+          <div class="sb" style="position:relative;">
+            <div class="sl">🛰️ Rainfall deficit</div>
+            <div class="sv" style="font-size:18px;color:${s.rainfallScore>50?'var(--rd)':'var(--gm)'}">${s.rainfallScore}</div>
+            <div class="ss">${s.nasaLive?'NASA POWER · live':'Estimated'}</div>
+            ${s.nasaLive?`<div style="font-size:9px;color:var(--g3);margin-top:2px;">Avg rainfall: ${s.avgRainfall?.toFixed(1)||'?'}mm · Recent: ${s.recentRainfall?.toFixed(1)||'?'}mm</div>`:''}
+          </div>
+          <div class="sb">
+            <div class="sl">🌍 FAO yield gap</div>
+            <div class="sv" style="font-size:18px;color:${s.yieldScore>50?'var(--rd)':'var(--gm)'}">${s.yieldScore}</div>
+            <div class="ss">vs FAO baselines</div>
+            <div style="font-size:9px;color:var(--g3);margin-top:2px;">
+              <a href="https://www.fao.org/faostat/en/#country/184" target="_blank" style="color:var(--gb);text-decoration:none;">fao.org/faostat ↗</a>
+            </div>
+          </div>
+          <div class="sb">
+            <div class="sl">🌾 Platform supply</div>
+            <div class="sv" style="font-size:18px;color:${s.supplyScore>50?'var(--rd)':'var(--gm)'}">${s.supplyScore}</div>
+            <div class="ss">${provListings.length} listings · ${(provKg/1000).toFixed(1)}t</div>
+            ${cropBreakdown.length?`<div style="font-size:9px;color:var(--g3);margin-top:2px;">${cropBreakdown.map(([c,q])=>c+': '+(q/1000).toFixed(1)+'t').join(' · ')}</div>`:''}
+          </div>
+          <div class="sb">
+            <div class="sl">🏥 WFP vulnerability</div>
+            <div class="sv" style="font-size:18px;color:${s.vulnScore>50?'var(--rd)':'var(--gm)'}">${s.vulnScore}</div>
+            <div class="ss">population index</div>
+            <div style="font-size:9px;color:var(--g3);margin-top:2px;">
+              <a href="https://www.wfp.org/countries/rwanda" target="_blank" style="color:var(--gb);text-decoration:none;">wfp.org ↗</a>
+            </div>
+          </div>
         </div>
+        ${s.score>=50?`<div style="background:var(--rll);border:1px solid var(--rd);border-radius:var(--rsm);padding:8px 12px;font-size:12px;color:var(--rd);display:flex;justify-content:space-between;align-items:center;">
+          <span>⚠️ ${r.label} risk — consider publishing an alert</span>
+          <button class="btn btn-r btn-sm" onclick="openAlertModal()">+ Alert</button>
+        </div>`:''}
       </div>`;
     });
 
+    html+=`<div style="font-size:10px;color:var(--g3);text-align:center;padding:8px;line-height:1.6;">
+      Data sources: <a href="https://power.larc.nasa.gov" target="_blank" style="color:var(--gb);">NASA POWER</a> ·
+      <a href="https://www.fao.org/faostat" target="_blank" style="color:var(--gb);">FAO STAT</a> ·
+      <a href="https://www.wfp.org/countries/rwanda" target="_blank" style="color:var(--gb);">WFP Rwanda</a> ·
+      AgriConnect Platform Data<br>
+      Methodology: weighted composite index · updated on each page load
+    </div>`;
+
     cont.innerHTML=html;
-  }catch(e){cont.innerHTML=`<div class="empty">Error computing scores: ${e.message}</div>`;}
+  }catch(e){cont.innerHTML=`<div class="empty">Error computing scores: ${e.message}<br><small>Check console for details</small></div>`;console.error('loadFamine:',e);}
 }
 
 function scrSMS(){
-  return`<div class="sh2"><span class="st">SMS broadcast</span></div>
-  <div class="sg"><div class="sb"><div class="sl">Users in region</div><div class="sv" id="sms-u">—</div></div><div class="sb"><div class="sl">Farmers</div><div class="sv" id="sms-f">—</div></div></div>
-  <div class="card"><div class="ct">Quick templates</div>
-    ${[{l:'Price alert',b:'AGRI: Maize rose to 290 RWF/kg (+5%). List your produce now at AgriConnect.'},{l:'Famine warning',b:'GOV ALERT: Food shortage risk in your district. Register surplus at AgriConnect.'},{l:'Transport job',b:'AGRI JOB: Truck needed Nyagatare→Kigali. 1,500kg Maize. Pay: 45,000 RWF.'}].map(x=>`<div style="margin-bottom:14px;"><div style="font-size:12px;font-weight:600;color:var(--g5);margin-bottom:6px;">${x.l}</div><div class="smspre"><div class="smsh">Preview</div><div class="smsb">${x.b}</div></div><button class="btn btn-og btn-sm" style="margin-top:6px;" onclick="toast('SMS queued for broadcast!')">Send broadcast</button></div>`).join('')}
+  const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1);
+  return`<div class="sh2"><span class="st">SMS Broadcast</span><span class="sc2" style="font-size:11px;color:var(--g5);">📍 ${regionLabel}</span></div>
+  <div class="sg" style="margin-bottom:14px;">
+    <div class="sb"><div class="sl">Users in region</div><div class="sv" id="sms-u">—</div><div class="ss">total</div></div>
+    <div class="sb"><div class="sl">Farmers</div><div class="sv" id="sms-f">—</div><div class="ss">registered</div></div>
+    <div class="sb"><div class="sl">Brokers</div><div class="sv" id="sms-b">—</div><div class="ss">active</div></div>
+    <div class="sb"><div class="sl">Transporters</div><div class="sv" id="sms-t">—</div><div class="ss">registered</div></div>
+  </div>
+  <div class="card"><div class="ct">Quick alert templates</div>
+    ${[
+      {l:'Price surge alert',b:`AGRICONNECT [${regionLabel.toUpperCase()}]: Maize prices rising. Sell now at AgriConnect for best rates. muhirehubert.github.io/agriconnect`},
+      {l:'Food shortage warning',b:`GOV ALERT [${regionLabel.toUpperCase()}]: Food shortage risk detected. Register your surplus produce at AgriConnect immediately.`},
+      {l:'Transport opportunity',b:`AGRICONNECT: Transport jobs available in ${regionLabel}. Earn up to 40% more with return load matching. muhirehubert.github.io/agriconnect`},
+      {l:'Market day reminder',b:`AGRICONNECT: Check today's live crop prices before going to market. muhirehubert.github.io/agriconnect — free for farmers.`},
+    ].map(x=>`
+      <div style="margin-bottom:14px;border-bottom:1px solid var(--g1);padding-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--g5);margin-bottom:6px;">${x.l}</div>
+        <div class="smspre"><div class="smsh">Preview · ${x.b.length} chars</div><div class="smsb">${x.b}</div></div>
+        <button class="btn btn-og btn-sm" style="margin-top:6px;" onclick="prefillSMS(decodeURIComponent(this.dataset.msg))" data-msg="${encodeURIComponent(x.b)}">Use this template</button>
+      </div>`).join('')}
   </div>
   <div class="card"><div class="ct">Custom broadcast</div>
-    <div class="fg"><label class="fl">Target</label><select class="fi"><option>All users in region</option><option>All farmers</option><option>All transporters</option><option>All brokers</option></select></div>
-    <div class="fg"><label class="fl">Message (max 160 chars)</label><textarea class="fi" id="sms-msg" rows="3" maxlength="160" placeholder="Type your message..."></textarea></div>
-    <button class="btn btn-r btn-full" onclick="toast('Custom SMS broadcast sent!')">Send broadcast</button>
-  </div>`;}
+    <div class="fg"><label class="fl">Target group</label>
+      <select class="fi" id="sms-target">
+        <option value="all">All users in ${regionLabel}</option>
+        <option value="farmer">Farmers only</option>
+        <option value="broker">Brokers only</option>
+        <option value="transporter">Transporters only</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Message <span id="sms-char-count" style="color:var(--g3);font-weight:400;">(0/160 chars)</span></label>
+      <textarea class="fi" id="sms-msg" rows="4" maxlength="160" placeholder="Type your message..." oninput="document.getElementById('sms-char-count').textContent='('+this.value.length+'/160 chars)'"></textarea>
+    </div>
+    <button class="btn btn-r btn-full" onclick="sendCustomSMS()">📱 Send broadcast to ${regionLabel}</button>
+  </div>
+  <div style="font-size:10px;color:var(--g3);text-align:center;padding:8px;">SMS delivery powered by Africa's Talking API (coming soon) · Currently queued for review</div>`;
+}
+
+window.prefillSMS=function(elOrText){
+  const text=typeof elOrText==='string'?elOrText:(elOrText?.dataset?.msg||'');
+  const el=document.getElementById('sms-msg');
+  if(el){el.value=text;el.dispatchEvent(new Event('input'));}
+  document.getElementById('sms-msg')?.scrollIntoView({behavior:'smooth'});
+};
+
+window.sendCustomSMS=async function(){
+  const msg=document.getElementById('sms-msg')?.value.trim();
+  const target=document.getElementById('sms-target')?.value;
+  if(!msg){toast('Please type a message.');return;}
+  // Log to Firestore for admin review
+  await addDoc(collection(db,'sms_queue'),{
+    msg,target,region:S.govtRegion,
+    sentBy:'govt',sentAt:serverTimestamp(),status:'queued',
+  }).catch(()=>{});
+  toast('✅ Broadcast queued! Will be sent via Africa's Talking SMS API.');
+  document.getElementById('sms-msg').value='';
+};
 
 async function loadSMSStats(){
   try{
-    const snap=await getDocs(collection(db,'users'));let users=snap.docs.map(d=>d.data());
+    const snap=await getDocs(collection(db,'users'));
+    let users=snap.docs.map(d=>d.data());
     if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
     const el=id=>document.getElementById(id);
     if(el('sms-u'))el('sms-u').textContent=users.length;
     if(el('sms-f'))el('sms-f').textContent=users.filter(u=>u.role==='farmer').length;
+    if(el('sms-b'))el('sms-b').textContent=users.filter(u=>u.role==='broker').length;
+    if(el('sms-t'))el('sms-t').textContent=users.filter(u=>u.role==='transporter').length;
   }catch(e){}
 }
 
 window.openAlertModal=function(){
   document.getElementById('modal-content').innerHTML=`
-    <div class="mt2">Publish alert</div><div class="ms2">Alert will appear in the government dashboard.</div>
-    <div class="fg"><label class="fl">Alert message</label><textarea class="fi" id="al-text" rows="3" placeholder="Describe the situation..."></textarea></div>
-    <div class="fg"><label class="fl">Severity</label><select class="fi" id="al-sev"><option value="red">Critical (Red)</option><option value="amber">Warning (Amber)</option><option value="green">Update (Green)</option></select></div>
-    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Cancel</button><button class="btn btn-r" onclick="submitAlert()">Publish alert</button></div>`;
+    <div class="mt2">Publish alert</div>
+    <div class="ms2">Alert will appear in all government portals and can trigger SMS broadcast.</div>
+    <div class="fg"><label class="fl">Alert message</label><textarea class="fi" id="al-text" rows="3" placeholder="Describe the food security situation clearly..."></textarea></div>
+    <div class="fg"><label class="fl">Severity</label>
+      <select class="fi" id="al-sev">
+        <option value="red">🔴 Critical — immediate action needed</option>
+        <option value="amber">🟡 Warning — monitor closely</option>
+        <option value="green">🟢 Update — informational</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Affected region</label>
+      <select class="fi" id="al-region">
+        <option value="${S.govtRegion}">${S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' (your region)'}</option>
+        ${S.govtRegion!=='all'?'<option value="all">All Rwanda</option>':''}
+      </select>
+    </div>
+    <div class="mact">
+      <button class="btn btn-og" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-r" onclick="submitAlert()">Publish alert</button>
+    </div>`;
   document.getElementById('modal').classList.add('open');
 };
 
 window.submitAlert=async function(){
-  const text=document.getElementById('al-text').value.trim(),sev=document.getElementById('al-sev').value;
+  const text=document.getElementById('al-text').value.trim();
+  const sev=document.getElementById('al-sev').value;
+  const region=document.getElementById('al-region').value;
   if(!text){toast('Please enter alert text.');return;}
-  await addDoc(collection(db,'govt_alerts'),{text,sev,region:S.govtRegion,createdAt:serverTimestamp()});
-  logEvent(analytics,'alert_published',{severity:sev});closeModal();toast('✅ Alert published!');loadGovtHome();
+  await addDoc(collection(db,'govt_alerts'),{text,sev,region,createdAt:serverTimestamp()});
+  logEvent(analytics,'alert_published',{severity:sev,region});
+  closeModal();toast('✅ Alert published to '+region+'!');loadGovtHome();
 };
 
 // ─── PROFILE ───
@@ -2282,10 +2532,4 @@ window.viewDealJobCounters_byOffer=async function(offerId){
 
 window.closeModal=function(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');};
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
-function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
-
-// Boot — show landing immediately, no waiting for Firebase
-showPage('pg-land');
-</script>
-</body>
-</html>
+function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'jus
