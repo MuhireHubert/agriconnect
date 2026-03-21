@@ -963,11 +963,7 @@ window.acceptOffer=async function(oid){
       toast('✅ Offer accepted! Transport job is now open for transporters.');
     }
     logEvent(analytics,'offer_accepted',{amount:totalValue,aqa:o.aqaRequested||false});
-    // SMS: notify broker + AQA farmer
-    getDoc(doc(db,'users',o.brokerId)).then(bSnap=>{
-      if(bSnap.exists()) notifyBrokerOfferAccepted(bSnap.data().phone,S.profile.fname,o.cropName,o.qty).catch(()=>{});
-    }).catch(()=>{});
-    if(o.aqaRequested) notifyFarmerAQAScheduled(S.profile.phone,o.cropName).catch(()=>{});
+
     setTimeout(()=>showRatingModal(oid,'broker_deal'),1500);
     loadOffers();
   }catch(e){toast('❌ Error: '+e.message);console.error('acceptOffer:',e);}
@@ -998,10 +994,7 @@ window.declineOffer=async function(oid){
   const odSnap=await getDoc(doc(db,'offers',oid));
   if(odSnap.exists()){const od=odSnap.data();try{const ldSnap=await getDoc(doc(db,'listings',od.listingId));if(ldSnap.exists()){const cur=ldSnap.data().reserved||0;await updateDoc(doc(db,'listings',od.listingId),{reserved:Math.max(0,cur-od.qty)});}}catch(e){}}
   await updateDoc(doc(db,'offers',oid),{status:'declined'});
-  // SMS: notify broker
-  odSnap?.data && getDoc(doc(db,'users',odSnap.data().brokerId)).then(bSnap=>{
-    if(bSnap.exists()) notifyBrokerOfferDeclined(bSnap.data().phone,odSnap.data().cropName).catch(()=>{});
-  }).catch(()=>{});
+
   logEvent(analytics,'offer_declined');toast('Offer declined.');loadOffers();
 };
 
@@ -1283,10 +1276,7 @@ window.submitOffer=async function(lid,farmerId,cropName,farmerName,maxAvail){
       });
     }
     logEvent(analytics,'offer_made',{crop:cropName,price,qty,aqa:aqaRequested});
-    // SMS: notify farmer
-    getDoc(doc(db,'users',farmerId)).then(fSnap=>{
-      if(fSnap.exists()) notifyFarmerNewOffer(fSnap.data().phone,S.profile.fname,cropName,qty,price).catch(()=>{});
-    }).catch(()=>{});
+
     closeModal();
     toast(aqaRequested
       ?'✅ Offer sent with AQA request! Farmer will be notified. Our agent will visit the farm within 48 hours.'
@@ -1379,17 +1369,7 @@ window.markDelivered=async function(jid){
     await addDoc(collection(db,'transactions'),{type:'delivery_commission',jobId:jid,transporterId:j.transporterId||S.user.uid,amount:j.deliveryComm||0,commission:j.deliveryComm||0,status:'confirmed',createdAt:serverTimestamp()}).catch(()=>{});
   }
   logEvent(analytics,'job_delivered');
-  // SMS: notify farmer and broker
-  const jd=jSnap.exists?jSnap.data():{};
-  if(jd.farmerId&&jd.brokerId){
-    Promise.all([
-      getDoc(doc(db,'users',jd.farmerId)).catch(()=>null),
-      getDoc(doc(db,'users',jd.brokerId)).catch(()=>null),
-    ]).then(([fSnap,bSnap])=>{
-      if(fSnap?.exists()&&bSnap?.exists())
-        notifyDeliveryComplete(fSnap.data().phone,bSnap.data().phone,jd.crop,jd.qty).catch(()=>{});
-    }).catch(()=>{});
-  }
+
   // Trigger rating modal
   showRatingModal(jid,'transporter_delivery');
 };
@@ -2410,14 +2390,7 @@ window.submitCounterOffer=async function(oid,qty){
       counterMsg:msg,
       counteredAt:serverTimestamp(),
     });
-    // SMS: notify broker of counter
-    getDoc(doc(db,'offers',oid)).then(oSnap=>{
-      if(!oSnap.exists())return;
-      const o=oSnap.data();
-      getDoc(doc(db,'users',o.brokerId)).then(bSnap=>{
-        if(bSnap.exists()) notifyBrokerCounterOffer(bSnap.data().phone,o.cropName,price).catch(()=>{});
-      }).catch(()=>{});
-    }).catch(()=>{});
+
     closeModal();
     toast('✅ Counter offer sent! The broker will be notified.');
     loadOffers();
@@ -2666,282 +2639,6 @@ window.finishOnboarding=async function(){
   showScr(document.querySelector('.bn')?.id?.replace('bn-','')||'home');
 };
 
-// ═══════════════════════════════════════════════════
-// MTN MOBILE MONEY — Collection API
-// ═══════════════════════════════════════════════════
-// IMPORTANT: Replace these with your real sandbox credentials
-const MOMO_CONFIG = {
-  // ── Sandbox ──────────────────────────────────────────────────────────
-  // Token URL:   https://sandbox.momodeveloper.mtn.com/collection/token/
-  // Pay URL:     https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay
-  // Status URL:  https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay/{id}
-  // ─────────────────────────────────────────────────────────────────────
-  tokenUrl:      'https://sandbox.momodeveloper.mtn.com/collection/token/',
-  collectionUrl: 'https://sandbox.momodeveloper.mtn.com/collection/v1_0',
-  subscriptionKey: 'YOUR_COLLECTION_SUBSCRIPTION_KEY', // Ocp-Apim-Subscription-Key (from Products page)
-  apiUser:         'YOUR_API_USER_UUID',               // UUID you created via POST /v1_0/apiuser
-  apiKey:          'YOUR_API_KEY',                     // from POST /v1_0/apiuser/{id}/apikey
-  currency:        'EUR',                              // sandbox = EUR | production Rwanda = RWF
-  environment:     'sandbox',                         // sandbox | production
-};
-
-// ── Step 1: Get OAuth2 Bearer token ──────────────────────────────────────────
-// POST /collection/token/
-// Headers required:
-//   Authorization:              Basic base64(apiUser:apiKey)
-//   Ocp-Apim-Subscription-Key:  your subscription key
-//   X-Target-Environment:       sandbox | production
-async function getMoMoToken(){
-  const credentials = btoa(`${MOMO_CONFIG.apiUser}:${MOMO_CONFIG.apiKey}`);
-  const res = await fetch(MOMO_CONFIG.tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization':             `Basic ${credentials}`,
-      'Ocp-Apim-Subscription-Key': MOMO_CONFIG.subscriptionKey,
-      'X-Target-Environment':      MOMO_CONFIG.environment,
-      'Content-Type':              'application/json',
-    },
-  });
-  if(!res.ok){
-    const err = await res.text().catch(()=>'');
-    throw new Error(`MoMo token failed (${res.status}): ${err}`);
-  }
-  const data = await res.json();
-  if(!data.access_token) throw new Error('MoMo token response missing access_token');
-  return data.access_token;
-}
-
-// ── Step 2: Request payment from payer's phone ────────────────────────────────
-// POST /collection/v1_0/requesttopay
-// Required headers:
-//   Authorization: Bearer {token}          ← from getMoMoToken()
-//   Ocp-Apim-Subscription-Key              ← your subscription key
-//   X-Reference-Id: {uuid}                 ← unique ID you generate for this payment
-//   X-Target-Environment: sandbox|production
-//   Content-Type: application/json
-// Optional headers:
-//   X-Callback-Url                         ← URL to receive payment status webhook
-window.requestMoMoPayment=async function(amountRWF, payerPhone, referenceId, description){
-  // ── Simulation mode when no real keys added yet ──
-  if(MOMO_CONFIG.subscriptionKey==='YOUR_COLLECTION_SUBSCRIPTION_KEY'){
-    toast('💳 MoMo payment simulated — add your API keys to go live.');
-    await addDoc(collection(db,'payments'),{
-      referenceId:referenceId||'sim_'+Date.now(),
-      payerPhone,amountRWF,description,
-      status:'simulated',createdAt:serverTimestamp(),
-    });
-    return{simulated:true};
-  }
-  try{
-    const token=await getMoMoToken();
-    const externalId=referenceId||crypto.randomUUID();
-    // Normalise phone to MSISDN format: 250XXXXXXXXX (no + prefix)
-    const msisdn=payerPhone.replace(/\D/g,'').replace(/^250/,'').replace(/^0/,'');
-    const fullPhone='250'+msisdn;
-
-    const res=await fetch(`${MOMO_CONFIG.collectionUrl}/requesttopay`,{
-      method:'POST',
-      headers:{
-        'Authorization':`Bearer ${token}`,
-        'Content-Type':'application/json',
-        'Ocp-Apim-Subscription-Key':MOMO_CONFIG.subscriptionKey,
-        'X-Reference-Id':externalId,
-        'X-Target-Environment':MOMO_CONFIG.environment,
-        // Optional: uncomment and set your webhook URL to receive status updates automatically
-        // 'X-Callback-Url':'https://agri-ussd.YOUR-ACCOUNT.workers.dev/momo-callback',
-      },
-      body:JSON.stringify({
-        amount:String(amountRWF),
-        currency:MOMO_CONFIG.currency,   // 'EUR' in sandbox, 'RWF' in production
-        externalId,
-        payer:{partyIdType:'MSISDN', partyId:fullPhone},
-        payerMessage:description||'AgriConnect payment',
-        payeeNote:'AgriConnect — Hub-In Rwanda',
-      }),
-    });
-
-    // 202 Accepted = request received, payment pending on phone
-    if(res.status!==202){
-      const errBody=await res.text().catch(()=>'');
-      throw new Error(`MoMo requesttopay failed (${res.status}): ${errBody}`);
-    }
-
-    await addDoc(collection(db,'payments'),{
-      referenceId:externalId,payerPhone:fullPhone,
-      amountRWF,description,status:'pending',
-      createdAt:serverTimestamp(),
-    });
-
-    // Poll for status after 5 seconds (phone user needs time to approve on their handset)
-    setTimeout(()=>checkMoMoStatus(externalId,null),5000);
-    toast('📱 MoMo prompt sent to +'+fullPhone+'. Ask payer to approve on their phone.');
-    return{referenceId:externalId,status:'pending'};
-  }catch(e){
-    toast('❌ MoMo error: '+e.message);
-    console.error('MoMo payment:',e);
-    throw e;
-  }
-};
-
-// ── Step 3: Check payment status ─────────────────────────────────────────────
-// GET /collection/v1_0/requesttopay/{referenceId}
-// Required headers:
-//   Authorization: Bearer {token}
-//   Ocp-Apim-Subscription-Key
-//   X-Target-Environment
-// Returns status: PENDING | SUCCESSFUL | FAILED
-async function checkMoMoStatus(referenceId, token){
-  try{
-    if(!token)token=await getMoMoToken();
-    const res=await fetch(`${MOMO_CONFIG.collectionUrl}/requesttopay/${referenceId}`,{
-      method:'GET',
-      headers:{
-        'Authorization':`Bearer ${token}`,
-        'Ocp-Apim-Subscription-Key':MOMO_CONFIG.subscriptionKey,
-        'X-Target-Environment':MOMO_CONFIG.environment,
-      },
-    });
-    if(!res.ok){console.warn('MoMo status check failed:',res.status);return;}
-    const data=await res.json();
-
-    // Update Firestore payment record
-    const snap=await getDocs(query(collection(db,'payments'),where('referenceId','==',referenceId)));
-    if(!snap.empty){
-      await updateDoc(doc(db,'payments',snap.docs[0].id),{
-        status:data.status?.toLowerCase()||'unknown',
-        momoReason:data.reason||null,
-        updatedAt:serverTimestamp(),
-      });
-    }
-
-    if(data.status==='SUCCESSFUL'){
-      toast('✅ MTN MoMo payment confirmed!');
-      logEvent(analytics,'payment_confirmed',{referenceId});
-    }else if(data.status==='FAILED'){
-      toast('❌ MoMo payment failed. Reason: '+(data.reason||'unknown'));
-    }else{
-      // PENDING — check again in 10 seconds (max ~60s before giving up)
-      setTimeout(()=>checkMoMoStatus(referenceId,null),10000);
-    }
-    return data.status;
-  }catch(e){console.error('MoMo status check:',e);}
-}
-
-// Pay transport commission via MoMo
-window.payTransportCommission=async function(jobId){
-  const jSnap=await getDoc(doc(db,'jobs',jobId));
-  if(!jSnap.exists())return;
-  const j=jSnap.data();
-  if(!j.transporterId){toast('No transporter assigned yet.');return;}
-  const tSnap=await getDoc(doc(db,'users',j.transporterId));
-  const transporter=tSnap.exists()?tSnap.data():{};
-  const phone=transporter.momo||transporter.phone;
-  if(!phone){toast('Transporter has no MoMo number registered.');return;}
-  await requestMoMoPayment(j.pay,phone,jobId,`AgriConnect delivery payment: ${j.cargo}`);
-};
-
-// ═══════════════════════════════════════════════════
-// AFRICA'S TALKING — SMS Notifications
-// ═══════════════════════════════════════════════════
-const AT_CONFIG = {
-  apiKey: 'YOUR_AFRICASTALKING_API_KEY',   // replace with your real key
-  username: 'YOUR_USERNAME',               // your Africa's Talking app name
-  senderId: 'AgriConnect',                 // your registered sender ID (or leave blank for sandbox)
-  sandbox: true,                           // set to false in production
-};
-
-// Core SMS send function — called by all notification types
-async function sendSMS(to, message){
-  // Normalise phone
-  const clean=to.replace(/\D/g,'').replace(/^250/,'').replace(/^0/,'');
-  const phone='+250'+clean;
-
-  if(AT_CONFIG.apiKey==='YOUR_AFRICASTALKING_API_KEY'){
-    // Simulation — log to Firestore, no real SMS sent
-    console.log('[SMS SIM]',phone,':',message);
-    await addDoc(collection(db,'sms_log'),{to:phone,message,status:'simulated',createdAt:serverTimestamp()}).catch(()=>{});
-    return{simulated:true};
-  }
-
-  const endpoint=AT_CONFIG.sandbox
-    ?'https://api.sandbox.africastalking.com/version1/messaging'
-    :'https://api.africastalking.com/version1/messaging';
-
-  const params=new URLSearchParams({
-    username:AT_CONFIG.username,
-    to:phone,
-    message:message.slice(0,160), // SMS max 160 chars
-    ...(AT_CONFIG.senderId&&{from:AT_CONFIG.senderId}),
-  });
-
-  const res=await fetch(endpoint,{
-    method:'POST',
-    headers:{
-      'apiKey':AT_CONFIG.apiKey,
-      'Content-Type':'application/x-www-form-urlencoded',
-      'Accept':'application/json',
-    },
-    body:params.toString(),
-  });
-  const data=await res.json();
-  await addDoc(collection(db,'sms_log'),{to:phone,message,status:res.ok?'sent':'failed',response:JSON.stringify(data),createdAt:serverTimestamp()}).catch(()=>{});
-  return data;
-}
-
-// Notification triggers — called automatically at key events
-
-// 1. When farmer receives a new offer
-async function notifyFarmerNewOffer(farmerPhone, brokerName, cropName, qty, price){
-  const msg=`AGRICONNECT: New offer from ${brokerName} for ${qty}kg of ${cropName} at ${price} RWF/kg. Open AgriConnect to accept or negotiate.`;
-  await sendSMS(farmerPhone, msg).catch(e=>console.error('SMS:',e));
-}
-
-// 2. When broker's offer is accepted
-async function notifyBrokerOfferAccepted(brokerPhone, farmerName, cropName, qty){
-  const msg=`AGRICONNECT: ${farmerName} accepted your offer for ${qty}kg of ${cropName}. A transport job has been created. Login to track your deal.`;
-  await sendSMS(brokerPhone, msg).catch(e=>console.error('SMS:',e));
-}
-
-// 3. When broker's offer is declined
-async function notifyBrokerOfferDeclined(brokerPhone, cropName){
-  const msg=`AGRICONNECT: Your offer for ${cropName} was declined. Browse new listings and try again at agriconnect.rw`;
-  await sendSMS(brokerPhone, msg).catch(e=>console.error('SMS:',e));
-}
-
-// 4. When farmer counter-offers
-async function notifyBrokerCounterOffer(brokerPhone, cropName, newPrice){
-  const msg=`AGRICONNECT: The farmer counter-offered ${newPrice} RWF/kg for ${cropName}. Login to accept or decline.`;
-  await sendSMS(brokerPhone, msg).catch(e=>console.error('SMS:',e));
-}
-
-// 5. When a transport job is available
-async function notifyTransportersNewJob(from, to, cargo, pay){
-  // In production: query transporters in the region and SMS each one
-  console.log('[SMS] New job notification:',from,'→',to,cargo,pay,'RWF');
-}
-
-// 6. When transporter is confirmed on a job
-async function notifyTransporterJobConfirmed(transporterPhone, from, to, cargo, pay){
-  const msg=`AGRICONNECT: Job confirmed! ${cargo} from ${from} to ${to}. Your pay: ${pay.toLocaleString()} RWF. Go to Active tab for pickup details.`;
-  await sendSMS(transporterPhone, msg).catch(e=>console.error('SMS:',e));
-}
-
-// 7. When delivery is confirmed
-async function notifyDeliveryComplete(farmerPhone, brokerPhone, cropName, qty){
-  const msg=`AGRICONNECT: Delivery confirmed! ${qty}kg of ${cropName} delivered. Payment will be processed via MTN MoMo shortly.`;
-  await Promise.all([
-    sendSMS(farmerPhone, msg).catch(()=>{}),
-    sendSMS(brokerPhone, msg.replace('Payment will be processed via MTN MoMo shortly.','Please confirm quality in the app.')).catch(()=>{}),
-  ]);
-}
-
-// 8. AQA inspection scheduled
-async function notifyFarmerAQAScheduled(farmerPhone, crop){
-  const msg=`AGRICONNECT: An AgriConnect quality agent will visit your farm within 48 hours to inspect your ${crop}. Please ensure produce is ready for inspection.`;
-  await sendSMS(farmerPhone, msg).catch(e=>console.error('SMS:',e));
-}
-
-// SMS notifications are called inline within each function above
 
 </script>
 </body>
