@@ -837,33 +837,46 @@ window.submitListing=async function(){
   if(!cropName||!qty||!price||!loc){toast('❌ Please fill in all required fields.');return;}
   const btn=document.getElementById('post-btn');btn.disabled=true;btn.textContent='Posting...';
   try{
-    // Upload photos if any
+    // Upload photos — skip gracefully if Storage rules block it
     const photoFiles=Array.from(document.getElementById('p-photos')?.files||[]).slice(0,5);
     const photoUrls=[];
     if(photoFiles.length>0){
       btn.textContent='Uploading photos...';
       for(const file of photoFiles){
-        const r=ref(storage,`listings/${S.user.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(r,file);
-        const url=await getDownloadURL(r);
-        photoUrls.push(url);
+        try{
+          // 15 second timeout per photo
+          const uploadPromise=async()=>{
+            const r=ref(storage,`listings/${S.user.uid}/${Date.now()}_${file.name}`);
+            await uploadBytes(r,file);
+            return await getDownloadURL(r);
+          };
+          const timeoutPromise=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000));
+          const url=await Promise.race([uploadPromise(),timeoutPromise]);
+          photoUrls.push(url);
+        }catch(uploadErr){
+          console.warn('Photo upload skipped:',uploadErr.message);
+          // Continue without this photo rather than hanging
+        }
+      }
+      if(photoUrls.length===0){
+        toast('⚠️ Photos could not be uploaded (Storage not configured). Posting without photos.');
       }
     }
     // Check trusted seller status
+    btn.textContent='Posting...';
     const profileSnap=await getDoc(doc(db,'users',S.user.uid));
     const prof=profileSnap.exists()?profileSnap.data():{};
     const isTrusted=(prof.completedDeals||0)>=3&&(prof.rating||0)>=4.5;
-    btn.textContent='Posting...';
     await addDoc(collection(db,'listings'),{
       userId:S.user.uid,farmerName:S.profile.fname+' '+(S.profile.lname||''),
       farmerPhone:S.profile.phone,farmerRating:S.profile.rating||5.0,
       crop:cropName,emoji:crop.emoji||'🌾',icon:crop.icon||null,type:crop.type||'other',
       qty,price,loc,province:getProvince(loc),date,notes,
       photos:photoUrls,photoVerified:photoUrls.length>0,
-      trustedSeller:isTrusted,status:'available',createdAt:serverTimestamp()
+      trustedSeller:isTrusted,status:'available',reserved:0,createdAt:serverTimestamp()
     });
     logEvent(analytics,'listing_posted',{crop:cropName,qty,price});
-    toast('✅ Listing posted! Brokers notified.');showScr('home');
+    toast('✅ Listing posted! Brokers can now see it.');showScr('home');
   }catch(e){toast('❌ Error: '+e.message);btn.disabled=false;btn.textContent='Post listing';}
 };
 
