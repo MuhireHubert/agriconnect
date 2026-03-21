@@ -294,7 +294,11 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
         <div class="fg"><label class="fl" id="lbl-rphone">Phone number</label>
           <div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="r-phone" type="tel" placeholder="780 000 000" maxlength="9" inputmode="numeric"></div>
         </div>
-        <div class="fg"><label class="fl" id="lbl-loc">District / Location</label><input class="fi" id="r-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province"></div>
+        <div class="fg"><label class="fl" id="lbl-loc">Location</label>
+          <div id="reg-loc-picker"></div>
+          <input class="fi" id="r-loc" type="hidden" value="">
+          <input class="fi" id="r-loc-text" type="text" placeholder="Or type manually: e.g. Nyagatare" style="margin-top:6px;" oninput="document.getElementById('r-loc').value=this.value">
+        </div>
         <div class="fg" id="vg" style="display:none;"><label class="fl">Vehicle (type & plate)</label><input class="fi" id="r-vehicle" type="text" placeholder="e.g. Isuzu NQR · RAC 483 B"></div>
         <div class="fg" id="cg" style="display:none;"><label class="fl">Capacity (tonnes)</label><input class="fi" id="r-cap" type="number" placeholder="e.g. 5"></div>
         <div class="fg"><label class="fl">MTN/Airtel MoMo</label>
@@ -477,6 +481,53 @@ const PROV_COORDS={
   northern:{lat:-1.4,lon:29.7},southern:{lat:-2.5,lon:29.8},kigali:{lat:-1.95,lon:30.06},
 };
 
+// ─── RWANDA LOCATION HIERARCHY ───
+const RW_LOCATIONS={
+  'Eastern Province':{districts:{'Bugesera':['Gashora','Juru','Kamabuye','Mareba','Mayange','Musenyi','Mwogo','Ngeruka','Ntarama','Ruhuha','Rweru','Shyara'],'Gatsibo':['Gasange','Gatsibo','Gitoki','Kabarore','Kageyo','Kiramuruzi','Kiziguro','Muhura','Murambi','Ngarama','Nyagihanga','Remera','Rugarama','Rwimbogo'],'Kayonza':['Gahini','Kabare','Kabarondo','Mukarange','Murama','Murundi','Mwiri','Ndego','Nyamirama','Rukara','Ruramira','Rwinkwavu'],'Kirehe':['Gahara','Gatore','Kigarama','Kigina','Kirehe','Mahama','Mpanga','Musaza','Mushikiri','Nasho','Nyamugari','Nyarubuye'],'Ngoma':['Gashanda','Jarama','Karembo','Kazo','Kibungo','Mugesera','Murama','Mutenderi','Remera','Rukira','Rukumberi','Rurenge','Sake','Zaza'],'Nyagatare':['Gatunda','Karama','Karangazi','Katabagemu','Kateri','Kibali','Kiyombe','Matimba','Mimuli','Mukama','Musheli','Nyagatare','Rukomo','Rwempasha','Rwimiyaga','Tabagwe'],'Rwamagana':['Fumbwe','Gahengeri','Gishari','Karenge','Kigabiro','Muhazi','Munyaga','Munyiginya','Musha','Muyumbu','Mwulire','Nyakariba','Nyakibanda','Nzige','Rubona']}},
+  'Western Province':{districts:{'Karongi':['Bwishyura','Gashari','Gishyita','Gitesi','Mubuga','Murambi','Murundi','Mutuntu','Rubengera','Rugabano','Ruganda','Rwankuba','Twumba'],'Ngororero':['Bwira','Gatumba','Hindiro','Kabaya','Kageyo','Kavumu','Matyazo','Muhanda','Muhororo','Ndaro','Ngororero','Nyange','Sovu'],'Nyabihu':['Bigogwe','Jomba','Kabatwa','Karago','Kintobo','Mukamira','Muringa','Rambura','Rugera','Rurembo','Shyira'],'Nyamasheke':['Bushekeri','Bushenge','Cyato','Gihombo','Kagano','Kanjongo','Karambi','Karengera','Kirimbi','Macuba','Mahembe','Nyabitekeri','Rangiro','Ruharambuga','Saint Constantin'],'Rubavu':['Bugeshi','Busasamana','Cyanzarwe','Gisenyi','Kanama','Kanzenze','Mudende','Nyamyumba','Nyundo','Rubavu','Rugerero'],'Rusizi':['Bugarama','Butare','Bweyeye','Gashonga','Giheke','Gihundwe','Gitambi','Kamembe','Muganza','Mururu','Nkungu','Nyakarenzo','Nzahaha','Rwimbogo'],'Rutsiro':['Boneza','Gihango','Kigeyo','Kivumu','Manihira','Mukura','Murunda','Musasa','Mushonyi','Mushubati','Nyabirasi','Ruhango','Rusebeya'],'Karongyi':['Gitesi','Mubuga']}},
+  'Northern Province':{districts:{'Burera':['Bungwe','Butaro','Cyanika','Cyeru','Gahunga','Gatebe','Gitovu','Kagogo','Kinoni','Kinyababa','Kivuye','Nemba','Rugarama','Rugendabari','Ruhunde','Rusarabuye','Rwerere'],'Gakenke':['Busengo','Coko','Cyabingo','Gakenke','Gashenyi','Janja','Kamubuga','Karambo','Kivuruga','Mataba','Minazi','Mugunga','Muhondo','Muyongwe','Muzo','Nemba','Ruli','Rusasa','Rushashi'],'Gicumbi':['Bukure','Bwisige','Byumba','Cyumba','Giti','Kaniga','Manyagiro','Miyove','Mukono','Mutete','Nyamiyaga','Nyankenke','Rubaya','Rukomo','Rushaki','Rutare','Ruvune','Rwamiko','Shangasha'],'Musanze':['Busogo','Cyuve','Gacaca','Gashaki','Gataraga','Kimonyi','Kinigi','Muhoza','Muko','Musanze','Nkotsi','Nyange','Remera','Rwaza','Shingiro'],'Rulindo':['Base','Burega','Bushoki','Buyoga','Cyinzuzi','Cyungo','Kinihira','Kisaro','Masoro','Mbogo','Murambi','Ngoma','Ntarabana','Rukozo','Rusiga','Shyorongi','Tumba']}},
+  'Southern Province':{districts:{'Gisagara':['Gikonko','Gishubi','Kansi','Kibilizi','Kigoma','Kigembe','Mamba','Muganza','Mugombwa','Mukindo','Musha','Ndora','Nyanza','Save'],'Huye':['Gishamvu','Huye','Karama','Kigoma','Kinazi','Maraba','Mbazi','Mukura','Ngoma','Ruhashya','Rusatira','Rwaniro','Simbi','Tumba'],'Kamonyi':['Gacurabwenge','Kamonyi','Kayenzi','Kayumbu','Mugina','Musambira','Ngamba','Nyamiyaga','Nyarubaka','Rugalika','Rukoma','Runda'],'Muhanga':['Cyeza','Kabacuzi','Kibangu','Kiyumba','Muhanga','Mushishiro','Nyamabuye','Nyamiyaga','Nyarusange','Rongi','Rugendabari','Shyogwe'],'Nyamagabe':['Buruhukiro','Cyanika','Gasaka','Gatare','Kaduha','Kamegeri','Kibirizi','Kibumbwe','Kitabi','Mbazi','Mugano','Musange','Musebeya','Mushubi','Nkomane','Tare','Uwinkingi'],'Nyanza':['Busasamana','Busengo','Cyabakamyi','Kibirizi','Kigoma','Mukingo','Muyira','Ntyazo','Nyagisozi','Rwabicuma'],'Nyaruguru':['Busanze','Cyahinda','Kibeho','Kivu','Mata','Muganza','Munini','Ngera','Ngoma','Nyabimata','Nyagisozi','Ruheru','Ruramba','Rusenge'],'Ruhango':['Byimana','Kabagari','Kinazi','Kinihira','Mbuye','Mwendo','Ntongwe','Ruhango']}},
+  'Kigali City':{districts:{'Gasabo':['Bumbogo','Gatsata','Gikomero','Gisozi','Jabana','Jali','Kacyiru','Kimihurura','Kimironko','Kinyinya','Ndera','Nduba','Remera','Rusororo','Rutunga'],'Kicukiro':['Gahanga','Gatenga','Gikondo','Gitega','Kagarama','Kanombe','Kicukiro','Kigarama','Masaka','Niboye','Nyarugunga'],'Nyarugenge':['Gitega','Kanyinya','Kigali','Kimisagara','Mageragere','Muhima','Nyakabanda','Nyamirambo','Nyarugenge','Rwezamenyo']}},
+};
+
+window.buildLocationPicker=function(containerId, onSelect){
+  const cont=document.getElementById(containerId);
+  if(!cont)return;
+  let province='',district='',sector='';
+  cont.innerHTML='<div style="display:flex;flex-direction:column;gap:8px;">'
+    +'<select class="fi" id="loc-province" onchange="window._locOnProvince && window._locOnProvince(this.value)">'
+    +'<option value="">Select province...</option>'
+    +Object.keys(RW_LOCATIONS).map(p=>'<option value="'+p+'">'+p+'</option>').join('')
+    +'</select>'
+    +'<select class="fi" id="loc-district" disabled onchange="window._locOnDistrict && window._locOnDistrict(this.value)"><option value="">Select district...</option></select>'
+    +'<select class="fi" id="loc-sector" disabled onchange="window._locOnSector && window._locOnSector(this.value)"><option value="">Select sector...</option></select>'
+    +'</div>';
+  window._locOnProvince=function(p){
+    province=p;district='';sector='';
+    const dSel=document.getElementById('loc-district');
+    const sSel=document.getElementById('loc-sector');
+    dSel.innerHTML='<option value="">Select district...</option>'+Object.keys(RW_LOCATIONS[p]?.districts||{}).map(d=>'<option value="'+d+'">'+d+'</option>').join('');
+    dSel.disabled=false;
+    sSel.innerHTML='<option value="">Select sector...</option>';
+    sSel.disabled=true;
+    if(onSelect)onSelect('');
+  };
+  window._locOnDistrict=function(d){
+    district=d;sector='';
+    const sSel=document.getElementById('loc-sector');
+    const provData=RW_LOCATIONS[province];
+    const sectors=provData?.districts[d]||[];
+    sSel.innerHTML='<option value="">Select sector...</option>'+sectors.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
+    sSel.disabled=false;
+    if(onSelect)onSelect(d+', '+province);
+  };
+  window._locOnSector=function(s){
+    sector=s;
+    const loc=s+', '+district+', '+province;
+    if(onSelect)onSelect(loc);
+  };
+};
+
 function getProvince(loc){
   if(!loc)return'other';const l=loc.toLowerCase();
   for(const[p,ds]of Object.entries(PROV_DISTRICTS)){if(ds.some(d=>l.includes(d)))return p;}
@@ -599,6 +650,17 @@ window.openAuth=function(role){
   document.getElementById('vg').style.display=role==='transporter'?'block':'none';
   document.getElementById('cg').style.display=role==='transporter'?'block':'none';
   showPage('pg-auth');
+  // Init location picker after render
+  setTimeout(()=>{
+    if(role!=='govt'){
+      buildLocationPicker('reg-loc-picker',loc=>{
+        const el=document.getElementById('r-loc');
+        const tel=document.getElementById('r-loc-text');
+        if(el)el.value=loc;
+        if(tel&&loc)tel.value=loc;
+      });
+    }
+  },150);
 };
 
 window.switchTab=function(tab){
@@ -716,10 +778,14 @@ function enterApp(){
   document.getElementById('tb-loc').textContent=p.loc||'';
   document.getElementById('tb-role').textContent=conf.role;
   document.getElementById('bnav').innerHTML=conf.nav.map(n=>
-    `<button class="bn" id="bn-${n.id}" onclick="showScr('${n.id}')"><span class="ni">${n.i}</span><span class="nl">${t(n.k)||n.k}</span></button>`
+    '<button class="bn" id="bn-'+n.id+'" onclick="showScr(''+n.id+'')"><span class="ni">'+n.i+'</span><span class="nl">'+( t(n.k)||n.k)+'</span><span class="nbadge" id="badge-'+n.id+'" style="display:none;position:absolute;top:6px;right:calc(50% - 18px);background:var(--rd);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center;"></span></button>'
   ).join('');
+  // Make nav buttons position:relative for badge positioning
+  document.querySelectorAll('.bn').forEach(b=>b.style.position='relative');
   showPage('pg-app');
   showScr(conf.nav[0].id);
+  // Check for notifications
+  setTimeout(()=>checkNotifications(),1500);
   // Show onboarding overlay on first login only (non-blocking)
   if(!S.profile.onboarded){
     setTimeout(()=>showOnboarding(),600);
@@ -739,7 +805,7 @@ window.showScr=function(id){
   const fn=screens[id];
   if(fn)document.getElementById('screens').innerHTML=`<div class="scr show">${fn()}</div>`;
   const loaders={
-    home:loadHome,browse:loadListings,offers:loadOffers,deals:loadDeals,
+    home:loadHome,browse:loadListings,offers:loadOffers,deals:loadDeals,post:initPostPickers,
     jobs:loadJobs,active:loadActiveJob,earnings:loadEarnings,chat:loadChatList,
     famine:loadFamine,sms:loadSMSStats,
   };
@@ -791,7 +857,7 @@ function scrPost(){
       <div class="fg"><label class="fl">Quantity (kg)</label><input class="fi" id="p-qty" type="number" placeholder="e.g. 1000" min="1" inputmode="numeric"></div>
       <div class="fg"><label class="fl">Price (RWF/kg)</label><input class="fi" id="p-price" type="number" placeholder="e.g. 280" min="1" inputmode="numeric"></div>
     </div>
-    <div class="fg"><label class="fl">Location</label><input class="fi" id="p-loc" type="text" placeholder="e.g. Nyagatare, Eastern Province" value="${S.profile.loc||'x'}"></div>
+    <div class="fg"><label class="fl">Location</label><div id="post-loc-picker"></div><input class="fi" id="p-loc" type="hidden" value="${S.profile.loc||}"><input class="fi" id="p-loc-text" type="text" placeholder="e.g. Nyagatare" style="margin-top:6px;" value="${S.profile.loc||}" oninput="document.getElementById('p-loc').value=this.value"></div>
     <div class="fg"><label class="fl">Ready from</label><input class="fi" id="p-date" type="date"></div>
     <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" id="p-notes" type="text" placeholder="e.g. freshly harvested, dry stored"></div>
     <div class="fg">
@@ -1007,7 +1073,7 @@ window.declineOffer=async function(oid){
   if(odSnap.exists()){const od=odSnap.data();try{const ldSnap=await getDoc(doc(db,'listings',od.listingId));if(ldSnap.exists()){const cur=ldSnap.data().reserved||0;await updateDoc(doc(db,'listings',od.listingId),{reserved:Math.max(0,cur-od.qty)});}}catch(e){}}
   await updateDoc(doc(db,'offers',oid),{status:'declined'});
 
-  logEvent(analytics,'offer_declined');toast('Offer declined.');loadOffers();
+  logEvent(analytics,'offer_declined');toast('Offer declined.');loadOffers();setTimeout(checkNotifications,500);
 };
 
 // ═══════════════════════════════════════════════════
@@ -1104,7 +1170,7 @@ async function loadDeals(){
             <button class="btn btn-og btn-sm" style="flex:1;" onclick="declineCounterOffer('${o.id}')">Decline</button>
           </div>
         </div>`:''}
-        ${['accepted','inspection_confirmed'].includes(o.status)?`<button class="btn btn-ob btn-sm btn-full" style="margin-top:4px;" onclick="viewDealJobCounters_byOffer('${o.id}')">🚛 View & negotiate transport</button>`:''}
+        ${['accepted','inspection_confirmed'].includes(o.status)?`<div style="display:flex;gap:6px;margin-top:6px;"><button class="btn btn-ob btn-sm" style="flex:1;" onclick="viewDealJobCounters_byOffer('${o.id}')">🚛 Proposals</button><button class="btn btn-og btn-sm" style="flex:1;" onclick="trackDelivery('${o.id}')">📍 Track</button></div>`:''}
       </div>`;
     }).join('');
   }catch(e){cont.innerHTML=`<div class="empty">Error loading deals.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('deals:',e);}
@@ -1156,6 +1222,7 @@ window.openOfferModal=async function(lid){
     document.getElementById('modal-content').innerHTML=`
       <div class="mt2">Make an offer</div>
       <div class="ms2">${fresh.crop} · ${fresh.price} RWF/kg · Listed by ${fresh.farmerName}${mp?` · Market: ${mp.price} RWF/kg`:''}</div>
+      ${fresh.photos&&fresh.photos.length?`<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--g5);margin-bottom:6px;">PRODUCE PHOTOS</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${fresh.photos.map(p=>`<img src="${p}" onclick="this.style.width=this.style.width==='100%'?'80px':'100%'" style="width:80px;height:80px;border-radius:var(--rsm);object-fit:cover;cursor:zoom-in;transition:all 0.2s;" alt="produce">`).join('')}</div></div>`:''}
       <div style="background:var(--gl);border:1px solid var(--gb);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--gd);margin-bottom:14px;">
         ✅ <strong>${avail.toLocaleString()} kg available</strong> (${(fresh.qty||0).toLocaleString()} kg total${fresh.reserved>0?` · ${fresh.reserved.toLocaleString()} kg under other offers`:''})
       </div>
@@ -1383,7 +1450,9 @@ window.markDelivered=async function(jid){
   logEvent(analytics,'job_delivered');
 
   // Trigger rating modal
-  showRatingModal(jid,'transporter_delivery');
+  // Transporter rates farmer and broker (not themselves)
+  showRatingModal(jid,'transporter_rate_farmer');
+  setTimeout(()=>showRatingModal(jid,'transporter_rate_broker'),4000);
 };
 
 window.openJobModal=async function(jid){
@@ -1491,6 +1560,12 @@ function scrGovtHome(){
 }
 
 async function loadGovtHome(){
+  // Set fallback content immediately so nothing stays blank
+  ['gov-supply-card','gov-districts-card','gov-alerts-card'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&el.innerHTML.includes('loading-inline'))
+      el.innerHTML='<div class="ct">Loading...</div><div style="padding:10px 0;font-size:12px;color:var(--g5);">Fetching data...</div>';
+  });
   try{
     // ── Users ──
     const uSnap=await getDocs(collection(db,'users'));
@@ -1529,10 +1604,11 @@ async function loadGovtHome(){
     const cropRows=Object.entries(cropMap).sort((a,b)=>b[1].qty-a[1].qty);
     const sc=el('gov-supply-card');
     if(sc){
-      if(!cropRows.length){sc.innerHTML=`<div class="ct">Supply by crop</div><div class="empty" style="padding:10px 0;">No active listings in this region.</div>`;}
+      if(!cropRows.length){sc.innerHTML='<div class="ct">Supply by crop</div><div class="empty" style="padding:10px 0;">No active listings in this region yet.</div>';}
       else{
         const maxQty=cropRows[0][1].qty||1;
-        sc.innerHTML=`<div class="ct">Supply by crop — ${regionLabel==='All Rwanda'?'All Rwanda':regionLabel}</div>`+
+        const rl=regionLabel==='All Rwanda'?'All Rwanda':regionLabel;
+        sc.innerHTML='<div class="ct">Supply by crop — '+rl+'</div>'+
           cropRows.map(([name,data])=>`
             <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g1);">
               <span style="font-size:18px;width:24px;">${data.emoji}</span>
@@ -1559,8 +1635,8 @@ async function loadGovtHome(){
     const distRows=Object.entries(distMap).sort((a,b)=>b[1].qty-a[1].qty).slice(0,6);
     const dc=el('gov-districts-card');
     if(dc){
-      dc.innerHTML=`<div class="ct">Top producing districts</div>`+
-        (distRows.length===0?`<div class="empty" style="padding:10px 0;">No data yet.</div>`:
+      dc.innerHTML='<div class="ct">Top producing districts</div>'+
+        (distRows.length===0?'<div class="empty" style="padding:10px 0;">No data yet.</div>':
         distRows.map(([loc,data],i)=>`
           <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g1);">
             <span style="font-size:13px;font-weight:700;color:var(--g3);width:18px;">${i+1}</span>
@@ -1571,12 +1647,12 @@ async function loadGovtHome(){
     }
 
     // ── Alerts ──
-    const aSnap=await getDocs(query(collection(db,'govt_alerts')));
+    const aSnap=await getDocs(collection(db,'govt_alerts')).catch(()=>({docs:[]}));
     const ac=el('gov-alerts-card');
     if(ac){
       let alerts=byDate(aSnap.docs.map(d=>({id:d.id,...d.data()})));
       if(S.govtRegion!=='all')alerts=alerts.filter(a=>!a.region||a.region==='all'||a.region===S.govtRegion);
-      ac.innerHTML=`<div class="ct">Active alerts</div>`+
+      ac.innerHTML='<div class="ct">Active alerts</div>'+
         (alerts.length===0?`<div class="empty" style="padding:10px 0;">No active alerts for this region.</div>`:
         alerts.slice(0,5).map(a=>`
           <div class="aitem">
@@ -1899,16 +1975,18 @@ let _ratingJobId=null,_ratingContext=null,_selectedRating=0;
 window.showRatingModal=function(refId,context){
   _ratingJobId=refId;_ratingContext=context;_selectedRating=0;
   const titles={
-    'transporter_delivery':'Rate this delivery',
-    'farmer_deal':'Rate this farmer',
-    'broker_deal':'Rate this broker',
-    'transporter_deal':'Rate this transporter',
+    'transporter_delivery':'Rate the transporter',
+    'farmer_deal':'Rate the farmer',
+    'broker_deal':'Rate the broker',
+    'transporter_rate_farmer':'Rate this farmer',
+    'transporter_rate_broker':'Rate this broker',
   };
   const subs={
-    'transporter_delivery':'How was the transporter? Your rating helps other farmers and brokers choose reliable transporters.',
-    'farmer_deal':'How was the farmer? Was the produce as described? On time?',
-    'broker_deal':'How was the broker? Professional, fair, and on time?',
-    'transporter_deal':'How was the transporter? Reliable and careful with your cargo?',
+    'transporter_delivery':'How was this delivery job? Was the cargo ready and the broker responsive?',
+    'farmer_deal':'How was the farmer? Was the produce as described and ready on time?',
+    'broker_deal':'How was the broker? Professional, fair, and timely?',
+    'transporter_rate_farmer':'How was the farmer? Was the produce ready for pickup?',
+    'transporter_rate_broker':'How was the broker? Clear instructions and fair pay?',
   };
   document.getElementById('modal-content').innerHTML=`
     <div class="mt2">${titles[context]||'Leave a rating'}</div>
@@ -2372,7 +2450,8 @@ window.openCounterOfferModal=function(oid,currentPrice,currentQty,cropName){
       Broker offered: <strong>${parseFloat(currentPrice).toLocaleString()} RWF/kg</strong> for <strong>${parseFloat(currentQty).toLocaleString()} kg</strong> of ${cropName}
     </div>
     <div class="fg"><label class="fl">Your counter price (RWF/kg)</label>
-      <input class="fi" id="co-price" type="number" value="${currentPrice}" min="1" inputmode="numeric" oninput="updateCounterPreview(${currentQty})">
+      <input class="fi" id="co-price" type="number" value="${currentPrice}" min="1" inputmode="numeric"
+        oninput="if(this.value===''||this.value<1)this.value=1;updateCounterPreview(${currentQty})">
     </div>
     <div id="co-preview" style="background:var(--gl);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--gd);margin-bottom:4px;"></div>
     <div class="fg"><label class="fl">Message to broker (optional)</label>
@@ -2564,6 +2643,36 @@ window.declineCounterOffer=async function(oid){
   loadDeals();
 };
 
+window.trackDelivery=async function(offerId){
+  const snap=await getDocs(query(collection(db,'jobs'),where('offerId','==',offerId))).catch(()=>({docs:[]}));
+  if(!snap.docs?.length){toast('No transport job assigned yet. Waiting for a transporter to accept.');return;}
+  const j={id:snap.docs[0].id,...snap.docs[0].data()};
+  const steps=['open','in_progress','loaded','delivered'];
+  const stepLabels=['Job posted','Transporter at farm','Cargo loaded','Delivered ✓'];
+  const si=steps.indexOf(j.status);
+  const stepsHtml=stepLabels.map((lbl,i)=>{
+    const done=i<si,active=i===si;
+    return'<div style="display:flex;flex-direction:column;align-items:center;flex:1;">'
+      +'<div style="width:16px;height:16px;border-radius:50%;background:'+(done?'var(--gm)':active?'var(--am)':'var(--g1)')+';border:2px solid '+(done?'var(--gm)':active?'var(--am)':'var(--g3)')+'"></div>'
+      +'<div style="font-size:10px;color:'+(active?'var(--am)':'var(--g5)')+';margin-top:6px;text-align:center;max-width:60px;">'+lbl+'</div>'
+      +'</div>'
+      +(i<stepLabels.length-1?'<div style="flex:1;height:2px;margin-top:7px;background:'+(done?'var(--gm)':'var(--g1)')+'"></div>':'');
+  }).join('');
+  document.getElementById('modal-content').innerHTML=
+    '<div class="mt2">Delivery tracking</div>'
+    +'<div class="ms2">'+j.from+' → '+j.to+'</div>'
+    +'<div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:13px;margin-bottom:14px;">'
+    +'<div style="font-size:13px;color:var(--g5);line-height:1.8;">Cargo: <strong>'+j.cargo+'</strong><br>'
+    +'Transporter: <strong>'+(j.transporterName||'Not yet assigned')+'</strong><br>'
+    +'Status: <strong style="color:'+(j.status==='delivered'?'var(--gm)':j.status==='open'?'var(--g3)':'var(--am)')+'">'+j.status.replace('_',' ').toUpperCase()+'</strong>'
+    +(j.deliveredAt?'<br>Delivered: '+new Date(j.deliveredAt.toDate?.()??j.deliveredAt).toLocaleString():'')
+    +'</div></div>'
+    +'<div style="display:flex;align-items:center;padding:8px 0;margin-bottom:14px;">'+stepsHtml+'</div>'
+    +(j.status!=='delivered'?'<div style="font-size:12px;color:var(--g5);text-align:center;padding:8px;background:var(--g0);border-radius:var(--rsm);">🔄 Refresh this screen to see latest status</div>':'')
+    +'<div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button></div>';
+  document.getElementById('modal').classList.add('open');
+};
+
 window.viewDealJobCounters_byOffer=async function(offerId){
   // Find the job linked to this offer
   const snap=await getDocs(query(collection(db,'jobs'),where('offerId','==',offerId))).catch(()=>({docs:[]}));
@@ -2571,9 +2680,57 @@ window.viewDealJobCounters_byOffer=async function(offerId){
   await openJobCounterReview(snap.docs[0].id);
 };
 
+// ── NOTIFICATION BADGES ──
+window.checkNotifications=async function(){
+  if(!S.user||!S.role)return;
+  try{
+    if(S.role==='farmer'){
+      // Count pending offers + countered-accepted offers
+      const snap=await getDocs(query(collection(db,'offers'),where('farmerId','==',S.user.uid),where('status','in',['pending','countered'])));
+      setBadge('offers',snap.size);
+      // Admin messages
+      const aSnap=await getDocs(query(collection(db,'admin_messages'),where('toUid','==',S.user.uid),where('read','==',false))).catch(()=>({size:0}));
+      setBadge('chat',aSnap.size||0);
+    }
+    if(S.role==='broker'){
+      // Pending counter-offers from farmers
+      const cSnap=await getDocs(query(collection(db,'offers'),where('brokerId','==',S.user.uid),where('status','==','countered')));
+      // AQA reports ready
+      const aqaSnap=await getDocs(query(collection(db,'aqa_requests'),where('brokerId','==',S.user.uid),where('status','==','completed'))).catch(()=>({size:0}));
+      setBadge('deals',cSnap.size+(aqaSnap.size||0));
+      // Transport counter proposals
+      const jSnap=await getDocs(query(collection(db,'jobs'),where('brokerId','==',S.user.uid),where('status','==','negotiating'))).catch(()=>({size:0}));
+      if(jSnap.size)setBadge('deals',(cSnap.size||0)+(jSnap.size||0));
+    }
+    if(S.role==='transporter'){
+      // New open jobs
+      const jSnap=await getDocs(query(collection(db,'jobs'),where('status','==','open')));
+      setBadge('jobs',Math.min(jSnap.size,9));
+    }
+  }catch(e){/* silent */}
+};
+
+function setBadge(navId,count){
+  const el=document.getElementById('badge-'+navId);
+  if(!el)return;
+  if(count>0){el.textContent=count>9?'9+':String(count);el.style.display='block';}
+  else{el.style.display='none';}
+}
+
 window.closeModal=function(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');};
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
 function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+
+function initPostPickers(){
+  setTimeout(()=>{
+    buildLocationPicker('post-loc-picker',loc=>{
+      const el=document.getElementById('p-loc');
+      const tel=document.getElementById('p-loc-text');
+      if(el)el.value=loc;
+      if(tel&&loc)tel.value=loc;
+    });
+  },100);
+}
 
 window.markAdminMsgsRead=async function(){
   if(!S.user)return;
