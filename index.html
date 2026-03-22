@@ -299,6 +299,17 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
           <input class="fi" id="r-loc" type="hidden" value="">
           <input class="fi" id="r-loc-text" type="text" placeholder="Or type manually: e.g. Nyagatare" style="margin-top:6px;" oninput="document.getElementById('r-loc').value=this.value">
         </div>
+        <div class="fg"><label class="fl">Operating country</label>
+          <select class="fi" id="r-country">
+            <option value="Rwanda">Rwanda</option>
+            <option value="Uganda">Uganda</option>
+            <option value="Kenya">Kenya</option>
+            <option value="Tanzania">Tanzania</option>
+            <option value="Burundi">Burundi</option>
+            <option value="DRC Congo">DRC Congo</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
         <div class="fg" id="vg" style="display:none;"><label class="fl">Vehicle (type & plate)</label><input class="fi" id="r-vehicle" type="text" placeholder="e.g. Isuzu NQR · RAC 483 B"></div>
         <div class="fg" id="cg" style="display:none;"><label class="fl">Capacity (tonnes)</label><input class="fi" id="r-cap" type="number" placeholder="e.g. 5"></div>
         <div class="fg"><label class="fl">MTN/Airtel MoMo</label>
@@ -312,7 +323,19 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
       <div id="form-govt" style="display:none;">
         <div class="fg"><label class="fl">Government ID</label><input class="fi" id="g-id" type="text" placeholder="Enter Gov ID"></div>
         <div class="fg"><label class="fl">Access code</label><input class="fi" id="g-code" type="password" placeholder="••••••••"></div>
-        <div class="fg"><label class="fl">Your province</label>
+        <div class="fg"><label class="fl">Country of jurisdiction</label>
+          <select class="fi" id="g-country" onchange="updateGovtProvinces(this.value)">
+            <option value="all">All Africa (Continental)</option>
+            <option value="Rwanda" selected>Rwanda</option>
+            <option value="Uganda">Uganda</option>
+            <option value="Kenya">Kenya</option>
+            <option value="Tanzania">Tanzania</option>
+            <option value="Burundi">Burundi</option>
+            <option value="DRC Congo">DRC Congo</option>
+            <option value="Ethiopia">Ethiopia</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Province / Region</label>
           <select class="fi" id="g-region">
             <option value="all">All Rwanda (National)</option>
             <option value="eastern">Eastern Province</option>
@@ -368,7 +391,7 @@ const storage=getStorage(fbApp);
 const GOVT_ID="HUBIN-GOV-2026",GOVT_CODE="AgriGov@2026";
 
 // ─── STATE ───
-let S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:'en',govtRegion:'all'};
+let S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:'en',govtRegion:'all',govtCountry:'Rwanda',opCountry:'all',opRegion:'all'};
 window._lc=[];
 
 // ─── PHONE <-> EMAIL ───
@@ -699,6 +722,17 @@ window.switchTab=function(tab){
 };
 
 function showErr(m){const e=document.getElementById('auth-err');e.textContent=m;e.style.display='block';}
+
+window.updateGovtProvinces=function(country){
+  const sel=document.getElementById('g-region');if(!sel)return;
+  if(country==='all'){
+    sel.innerHTML='<option value="all">All Africa (Continental)</option>';
+    return;
+  }
+  const provinces=Object.keys(AFRICA_COUNTRIES[country]?.provinces||{});
+  sel.innerHTML='<option value="all">All '+country+' (National)</option>'
+    +provinces.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+};
 function setBtnLoad(id,on,txt){const b=document.getElementById(id);if(b){b.disabled=on;b.textContent=on?'Please wait...':txt;}}
 
 // ─── REGISTER (phone-based) ───
@@ -720,9 +754,11 @@ window.doRegister=async function(){
   try{
     const email=phoneToEmail(rawPhone);
     const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    const country=document.getElementById('r-country')?.value||'Rwanda';
     const profile={uid:cred.user.uid,role:S.authRole,fname,lname,email,
       phone:'+250'+rawPhone,momo:'+250'+rawMomo,loc,
-      province:getProvince(loc),vehicle:vehicle||null,capacity,
+      province:getProvince(loc),country,operatingCountry:country,
+      vehicle:vehicle||null,capacity,
       rating:5.0,reviews:0,joined:new Date().toISOString(),createdAt:serverTimestamp()};
     await setDoc(doc(db,'users',cred.user.uid),profile);
     S.user=cred.user;S.profile=profile;S.role=S.authRole;
@@ -767,11 +803,15 @@ window.doLogin=async function(){
 window.doGovtLogin=function(){
   const id=document.getElementById('g-id').value.trim();
   const code=document.getElementById('g-code').value;
+  const country=document.getElementById('g-country')?.value||'Rwanda';
   const region=document.getElementById('g-region').value;
   if(id===GOVT_ID&&code===GOVT_CODE){
-    S.role='govt';S.govtRegion=region;
-    S.profile={fname:'Gov',lname:region==='all'?'Rwanda':region.charAt(0).toUpperCase()+region.slice(1),role:'govt',loc:'Kigali, Rwanda'};
-    logEvent(analytics,'govt_login',{region});
+    S.role='govt';
+    S.govtCountry=country;
+    S.govtRegion=region;
+    const scopeLabel=country==='all'?'Africa':(region==='all'?country:region+', '+country);
+    S.profile={fname:'Gov',lname:scopeLabel,role:'govt',loc:scopeLabel};
+    logEvent(analytics,'govt_login',{country,region});
     enterApp();
   }else{showErr('Invalid credentials. Contact admin@hub-in.rw');}
 };
@@ -964,7 +1004,9 @@ window.submitListing=async function(){
       userId:S.user.uid,farmerName:S.profile.fname+' '+(S.profile.lname||''),
       farmerPhone:S.profile.phone,farmerRating:S.profile.rating||5.0,
       crop:cropName,emoji:crop.emoji||'🌾',icon:crop.icon||null,type:crop.type||'other',
-      qty,price,loc,province:getProvince(loc),date,notes,
+      qty,price,loc,province:getProvince(loc),
+      country:S.profile?.operatingCountry||S.profile?.country||'Rwanda',
+      date,notes,
       photos:photoUrls,photoVerified:photoUrls.length>0,
       trustedSeller:isTrusted,status:'available',reserved:0,createdAt:serverTimestamp()
     });
@@ -1089,8 +1131,9 @@ async function createTransportJob(oid,o,l){
     qty:o.qty,crop:l.crop||o.cropName,
     pickup:o.pickup||'TBD',
     grossPay,deliveryComm,pay:netPay,
-    negotiable:true,            // transporters can counter-propose
-    counterOffers:[],           // holds transporter counter proposals
+    negotiable:true,
+    counterOffers:[],
+    country:o.country||l.country||'Rwanda',
     status:'open',createdAt:serverTimestamp(),
   });
 }
@@ -1147,7 +1190,11 @@ async function loadListings(){
   const cont=document.getElementById('browse-list'),cnt=document.getElementById('browse-cnt');if(!cont)return;
   try{
     const snap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
-    let listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));window._lc=listings;
+    let listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
+    // Filter by user operating country
+    const userCountry=S.profile?.operatingCountry||S.profile?.country||'Rwanda';
+    if(userCountry!=='all')listings=listings.filter(l=>(l.country||'Rwanda')===userCountry||(l.loc||'').toLowerCase().includes(userCountry.toLowerCase()));
+    window._lc=listings;
     if(S.cropFilter!=='All')listings=listings.filter(l=>l.crop===S.cropFilter);
     if(cnt)cnt.textContent=listings.length+' listings';
     cont.innerHTML=listings.length===0?`<div class="empty">No listings${S.cropFilter!=='All'?' for '+S.cropFilter:''} right now.</div>`:listings.map(l=>lcard(l,'broker')).join('');
@@ -1422,7 +1469,10 @@ async function loadJobs(){
   try{
     // Show open AND negotiating jobs — transporter should see jobs they've countered
     const jSnap=await getDocs(query(collection(db,'jobs'),where('status','in',['open','negotiating'])));
-    const jobs=byDate(jSnap.docs.map(d=>({id:d.id,...d.data()})));
+    let jobs=byDate(jSnap.docs.map(d=>({id:d.id,...d.data()})));
+    // Filter by transporter's operating country
+    const tCountry=S.profile?.operatingCountry||S.profile?.country||'Rwanda';
+    if(tCountry!=='all')jobs=jobs.filter(j=>(j.country||'Rwanda')===tCountry||(j.from||'').includes(tCountry)||(j.to||'').includes(tCountry));
     // Also fetch jobs where transporter has a pending counter offer
     const mySnap=await getDocs(query(collection(db,'jobs'),where('transporterId','==',S.user?.uid||'x')));
     const myJobs=mySnap.docs.map(d=>d.data());
@@ -1546,7 +1596,7 @@ async function loadEarnings(){
 // GOVERNMENT SCREENS — regional access, no phone numbers
 // ═══════════════════════════════════════════════════
 function scrGovtHome(){
-  const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' Province';
+  const country=S.govtCountry||'Rwanda';const regionLabel=S.govtCountry==='all'?'All Africa':(S.govtRegion==='all'?'All '+country:S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+', '+country);
   return`
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <div>
@@ -1587,7 +1637,7 @@ function scrGovtHome(){
 }
 
 async function loadGovtHome(){
-  const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' Province';
+  const country=S.govtCountry||'Rwanda';const regionLabel=S.govtCountry==='all'?'All Africa':(S.govtRegion==='all'?'All '+country:S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+', '+country);
   // Show placeholders immediately — never leave cards blank
   const el=id=>document.getElementById(id);
   const setCard=(id,title,body)=>{const c=el(id);if(c)c.innerHTML='<div class="ct">'+title+'</div>'+body;};
@@ -1598,7 +1648,8 @@ async function loadGovtHome(){
     // ── Users ──
     const uSnap=await getDocs(collection(db,'users')).catch(()=>({docs:[]}));
     let users=uSnap.docs.map(d=>d.data());
-    if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion);
+    if(S.govtCountry&&S.govtCountry!=='all')users=users.filter(u=>(u.country||'Rwanda')===S.govtCountry);
+    if(S.govtRegion!=='all')users=users.filter(u=>u.province===S.govtRegion||u.loc?.includes(S.govtRegion));
     const farmers=users.filter(u=>u.role==='farmer');
     const brokers=users.filter(u=>u.role==='broker');
     const transporters=users.filter(u=>u.role==='transporter');
@@ -1606,7 +1657,8 @@ async function loadGovtHome(){
     // ── Listings ──
     const lSnap=await getDocs(query(collection(db,'listings'),where('status','==','available'))).catch(()=>({docs:[]}));
     let listings=lSnap.docs.map(d=>d.data());
-    if(S.govtRegion!=='all')listings=listings.filter(l=>l.province===S.govtRegion||getProvince(l.loc||'')===S.govtRegion);
+    if(S.govtCountry&&S.govtCountry!=='all')listings=listings.filter(l=>(l.country||'Rwanda')===S.govtCountry);
+    if(S.govtRegion!=='all')listings=listings.filter(l=>l.province===S.govtRegion||getProvince(l.loc||'')===S.govtRegion||(l.loc||'').includes(S.govtRegion));
     const totalKg=listings.reduce((s,l)=>s+(l.qty||0),0);
 
     // ── Transactions ──
@@ -1995,6 +2047,11 @@ function scrProfile(){
     <div class="fg"><label class="fl">Location</label><input class="fi" id="up-loc" type="text" value="${u.loc||'x'}"></div>
     <div class="fg"><label class="fl">MoMo number</label><div class="phone-wrap"><span class="phone-pfx">🇷🇼 +250</span><input class="phone-inp" id="up-momo" type="tel" value="${(u.momo||'x').replace('+250','')}" maxlength="9" inputmode="numeric"></div></div>
     ${u.role==='transporter'?`<div class="fg"><label class="fl">Vehicle</label><input class="fi" id="up-vehicle" type="text" value="${u.vehicle||'x'}"></div><div class="fg"><label class="fl">Capacity (tonnes)</label><input class="fi" id="up-cap" type="number" value="${u.capacity||'x'}"></div>`:''}
+    <div class="fg"><label class="fl">Operating country</label>
+      <select class="fi" id="up-opcountry">
+        ${['Rwanda','Uganda','Kenya','Tanzania','Burundi','DRC Congo','Ethiopia','Nigeria','Ghana','Zambia','Zimbabwe','South Africa','Mozambique','Malawi','all'].map(c=>`<option value="${c}" ${(u.operatingCountry||'Rwanda')===c?'selected':''}>${c==='all'?'All Africa':c}</option>`).join('')}
+      </select>
+    </div>
     <div class="fg"><label class="fl">Language</label>
       <select class="fi" id="up-lang" onchange="setLang(this.value)">
         <option value="en" ${S.lang==='en'?'selected':''}>English</option>
@@ -2010,11 +2067,14 @@ function scrProfile(){
 window.saveProfile=async function(){
   if(!S.user)return;
   const momo=cleanPhone(document.getElementById('up-momo').value);
-  const updates={loc:document.getElementById('up-loc').value.trim(),momo:momo?'+250'+momo:''};
+  const opCountry=document.getElementById('up-opcountry')?.value||S.profile.operatingCountry||'Rwanda';
+  const updates={loc:document.getElementById('up-loc').value.trim(),momo:momo?'+250'+momo:'',
+    operatingCountry:opCountry,country:opCountry};
   if(document.getElementById('up-vehicle'))updates.vehicle=document.getElementById('up-vehicle').value.trim();
   if(document.getElementById('up-cap'))updates.capacity=parseFloat(document.getElementById('up-cap').value)||null;
   await updateDoc(doc(db,'users',S.user.uid),updates);
-  S.profile={...S.profile,...updates};document.getElementById('tb-loc').textContent=updates.loc||'';
+  S.profile={...S.profile,...updates};
+  document.getElementById('tb-loc').textContent=updates.loc||'';
   toast('✅ Profile updated!');
 };
 
@@ -2785,6 +2845,27 @@ function initPostPickers(){
     });
   },100);
 }
+
+window.toggleJobCountry=function(){
+  if(S.profile){
+    const cur=S.profile.operatingCountry||'Rwanda';
+    S.profile.operatingCountry=cur==='all'?'Rwanda':'all';
+    loadJobs();
+    const btn=document.getElementById('job-country-btn');
+    if(btn)btn.textContent=S.profile.operatingCountry==='all'?'Filter by country':'See all countries';
+    const lbl=document.querySelector('#jobs-cnt');
+  }
+};
+
+window.toggleGlobalBrowse=function(){
+  if(S.profile){
+    const cur=S.profile.operatingCountry||'Rwanda';
+    S.profile.operatingCountry=cur==='all'?'Rwanda':'all';
+    loadListings();
+    const btn=document.getElementById('global-browse-btn');
+    if(btn)btn.textContent=S.profile.operatingCountry==='all'?'Filter by country':'Browse all countries';
+  }
+};
 
 window.markAdminMsgsRead=async function(){
   if(!S.user)return;
