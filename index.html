@@ -325,14 +325,16 @@ input,select,textarea,button{font-family:'DM Sans',sans-serif;}
         <div class="fg"><label class="fl">Access code</label><input class="fi" id="g-code" type="password" placeholder="••••••••"></div>
         <div class="fg"><label class="fl">Country of jurisdiction</label>
           <select class="fi" id="g-country" onchange="updateGovtProvinces(this.value)">
-            <option value="all">All Africa (Continental)</option>
-            <option value="Rwanda" selected>Rwanda</option>
-            <option value="Uganda">Uganda</option>
-            <option value="Kenya">Kenya</option>
-            <option value="Tanzania">Tanzania</option>
-            <option value="Burundi">Burundi</option>
-            <option value="DRC Congo">DRC Congo</option>
-            <option value="Ethiopia">Ethiopia</option>
+            <option value="Rwanda" selected>🇷🇼 Rwanda</option>
+            <option value="Uganda">🇺🇬 Uganda</option>
+            <option value="Kenya">🇰🇪 Kenya</option>
+            <option value="Tanzania">🇹🇿 Tanzania</option>
+            <option value="Burundi">🇧🇮 Burundi</option>
+            <option value="DRC Congo">🇨🇩 DRC Congo</option>
+            <option value="Ethiopia">🇪🇹 Ethiopia</option>
+            <option value="Nigeria">🇳🇬 Nigeria</option>
+            <option value="Ghana">🇬🇭 Ghana</option>
+            <option value="South Africa">🇿🇦 South Africa</option>
           </select>
         </div>
         <div class="fg"><label class="fl">Province / Region</label>
@@ -702,7 +704,11 @@ window.openAuth=function(role){
   showPage('pg-auth');
   // Init location picker after render
   setTimeout(()=>{
-    if(role!=='govt'){
+    if(role==='govt'){
+      // Trigger province update for default country (Rwanda)
+      const gc=document.getElementById('g-country');
+      if(gc)updateGovtProvinces(gc.value||'Rwanda');
+    } else {
       buildLocationPicker('reg-loc-picker',function(loc){
         const el=document.getElementById('r-loc');
         const tel=document.getElementById('r-loc-text');
@@ -725,7 +731,7 @@ function showErr(m){const e=document.getElementById('auth-err');e.textContent=m;
 
 window.updateGovtProvinces=function(country){
   const sel=document.getElementById('g-region');if(!sel)return;
-  if(country==='all'){
+  if(!country||country==='all'){
     sel.innerHTML='<option value="all">All Africa (Continental)</option>';
     return;
   }
@@ -1816,7 +1822,7 @@ async function loadFamine(){
     scores.sort((a,b)=>b.score-a.score);
 
     // Risk summary bar
-    let html=`<div class="card"><div class="ct">Risk overview — ${S.govtRegion==='all'?'All Rwanda':S.govtRegion}</div>`;
+    let html=`<div class="card"><div class="ct">Risk overview — ${S.govtRegion==='all'?'All '+(S.govtCountry||'Rwanda'):S.govtRegion+', '+(S.govtCountry||'Rwanda')}</div>`;
     scores.forEach(s=>{
       const r=riskLabel(s.score);
       const nasaStatus=s.nasaLive?'🛰️ live':'🛰️ est.';
@@ -1895,7 +1901,7 @@ async function loadFamine(){
 }
 
 function scrSMS(){
-  const regionLabel=S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1);
+  const country=S.govtCountry||'Rwanda';const regionLabel=S.govtRegion==='all'?'All '+country:S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+', '+country;
   const templates=[
     {l:'Price surge alert',b:'AGRICONNECT: Maize prices rising. Sell now at AgriConnect for best rates. muhirehubert.github.io/agriconnect'},
     {l:'Food shortage warning',b:'GOV ALERT: Food shortage risk detected. Register your surplus produce at AgriConnect immediately.'},
@@ -1981,10 +1987,21 @@ async function loadSMSStats(){
 }
 
 window.openAlertModal=function(){
+  const country=S.govtCountry||'Rwanda';
+  const provinces=country==='all'?[]:Object.keys(AFRICA_COUNTRIES[country]?.provinces||{
+    'Eastern Province':[],'Western Province':[],'Northern Province':[],'Southern Province':[],'Kigali City':[]
+  });
+  const regionOpts=`
+    <option value="${S.govtRegion}" selected>${S.govtRegion==='all'?'All '+country+' (national)':S.govtRegion+' — your region'}</option>
+    <option value="all-country">All ${country} (entire country)</option>
+    ${provinces.filter(p=>p!==S.govtRegion).map(p=>`<option value="${p}">${p}</option>`).join('')}
+    <option value="all">All countries (global)</option>`;
   document.getElementById('modal-content').innerHTML=`
     <div class="mt2">Publish alert</div>
-    <div class="ms2">Alert will appear in all government portals and can trigger SMS broadcast.</div>
-    <div class="fg"><label class="fl">Alert message</label><textarea class="fi" id="al-text" rows="3" placeholder="Describe the food security situation clearly..."></textarea></div>
+    <div class="ms2">Appears in government portals and in users Chat tab.</div>
+    <div class="fg"><label class="fl">Alert message</label>
+      <textarea class="fi" id="al-text" rows="3" placeholder="Describe the food security situation clearly..."></textarea>
+    </div>
     <div class="fg"><label class="fl">Severity</label>
       <select class="fi" id="al-sev">
         <option value="red">🔴 Critical — immediate action needed</option>
@@ -1992,11 +2009,8 @@ window.openAlertModal=function(){
         <option value="green">🟢 Update — informational</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">Affected region</label>
-      <select class="fi" id="al-region">
-        <option value="${S.govtRegion}">${S.govtRegion==='all'?'All Rwanda':S.govtRegion.charAt(0).toUpperCase()+S.govtRegion.slice(1)+' (your region)'}</option>
-        ${S.govtRegion!=='all'?'<option value="all">All Rwanda</option>':''}
-      </select>
+    <div class="fg"><label class="fl">Target region</label>
+      <select class="fi" id="al-region">${regionOpts}</select>
     </div>
     <div class="mact">
       <button class="btn btn-og" onclick="closeModal()">Cancel</button>
@@ -2049,7 +2063,7 @@ function scrProfile(){
     ${u.role==='transporter'?`<div class="fg"><label class="fl">Vehicle</label><input class="fi" id="up-vehicle" type="text" value="${u.vehicle||'x'}"></div><div class="fg"><label class="fl">Capacity (tonnes)</label><input class="fi" id="up-cap" type="number" value="${u.capacity||'x'}"></div>`:''}
     <div class="fg"><label class="fl">Operating country</label>
       <select class="fi" id="up-opcountry">
-        ${['Rwanda','Uganda','Kenya','Tanzania','Burundi','DRC Congo','Ethiopia','Nigeria','Ghana','Zambia','Zimbabwe','South Africa','Mozambique','Malawi','all'].map(c=>`<option value="${c}" ${(u.operatingCountry||'Rwanda')===c?'selected':''}>${c==='all'?'All Africa':c}</option>`).join('')}
+        ${['Rwanda','Uganda','Kenya','Tanzania','Burundi','DRC Congo','Ethiopia','Nigeria','Ghana','Zambia','Zimbabwe','South Africa','Mozambique','Malawi'].map(c=>`<option value="${c}" ${(u.operatingCountry||'Rwanda')===c?'selected':''}>${c}</option>`).join('')}
       </select>
     </div>
     <div class="fg"><label class="fl">Language</label>
