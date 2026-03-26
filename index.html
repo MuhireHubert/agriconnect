@@ -394,6 +394,11 @@ const GOVT_ID="HUBIN-GOV-2026",GOVT_CODE="AgriGov@2026";
 
 // ─── STATE ───
 let S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:'en',govtRegion:'all',govtCountry:'Rwanda',opCountry:'all',opRegion:'all'};
+// Simple cache to reduce Firestore reads
+const _cache={listings:null,listingsAt:0,jobs:null,jobsAt:0,TTL:60000};
+function cacheGet(key){const c=_cache[key];return c&&(Date.now()-_cache[key+'At'])<_cache.TTL?c:null;}
+function cacheSet(key,val){_cache[key]=val;_cache[key+'At']=Date.now();}
+function cacheClear(){_cache.listings=null;_cache.jobs=null;}
 window._lc=[];
 
 // ─── PHONE <-> EMAIL ───
@@ -414,15 +419,15 @@ const LANGS={
     overview:'Overview',users:'Users',surplus:'Surplus',sms:'SMS',prices:'Prices',crops:'Crops',
   },
   rw:{lh:'Ubuhinzi bwawe,<br>ku isoko ryoroshye.',ls:"Igikoresho cy'itumanaho mu buhinzi bw'u Rwanda.",
-    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Umuguzi','lrd-broker':'Gura',
-    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ibipimo byUmusaruro',
-    'back-lbl':'Subira Inyuma','tab-in':'Injira','tab-reg':'Iyandikishe',
-    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina dini','lbl-lname':'Izina nyamuryango',
-    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo Ijambobanga',
+    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Muhinga','lrd-broker':'Reba ugure',
+    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ubumenyi bw\'inzara',
+    'back-lbl':'Garuka','tab-in':'Injira','tab-reg':'Iyandikishe',
+    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina','lbl-lname':'Inkomoko',
+    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo',
     'login-btn':'Injira','reg-btn':'Fungura konti',
-    greeting:'Muraho',welcome:'Murakaza Neza',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ubusabe',
-    profile:'Umwirondoro',browse:'Shakisha',deals:'Dilu',jobs:'Akazi',active:'Biri mu nzira',earnings:'Inyungu',
-    overview:'Incamake',users:'Abakoresha',surplus:'Umurengera',sms:'Mesaje',prices:'Ibiciro',crops:'Ibihingwa',
+    greeting:'Muraho',welcome:'Imbaho yanjye',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ibirego',
+    profile:'Umwirondoro',browse:'Reba',deals:'Amasezerano',jobs:'Akazi',active:'Biragenda',earnings:'Inyungu',
+    overview:'Incamake',users:'Abakoresha',surplus:'Umuhamagaro',sms:'SMS',prices:'Ibiciro',crops:'Imbuto',
   },
   sw:{lh:'Kutoka shambani hadi sokoni,<br>bila msongo wa mawazo.',ls:"Mfumo wa ugavi wa kilimo wa Rwanda. Hakuna mshangao wa bei.",
     'lr-farmer':'Mkulima','lrd-farmer':'Tangaza mazao','lr-broker':'Dalali','lrd-broker':'Tazama na biashara',
@@ -689,7 +694,7 @@ window.showPage=showPage;
 // ─── OPEN AUTH ───
 window.openAuth=function(role){
   S.authRole=role;
-  const tags={farmer:'🌱 Farmer',broker:'🤝 Broker',transporter:'🚛 Transporter',govt:'🏛️ Government'};
+  const tags={farmer:'🌱 Farmer',broker:'🤝 Buyer',transporter:'🚛 Transporter',govt:'🏛️ Government'};
   document.getElementById('auth-rtag').textContent=tags[role]||role;
   document.getElementById('auth-err').style.display='none';
   ['form-login','form-reg','form-govt'].forEach(id=>{
@@ -836,7 +841,7 @@ function enterApp(){
     farmer:{av:'👨‍🌾',role:'Farmer',cls:'farmer',nav:[
       {id:'home',i:'🏠',k:'home'},{id:'market',i:'📊',k:'market'},{id:'post',i:'➕',k:'post'},
       {id:'offers',i:'📬',k:'offers'},{id:'chat',i:'💬',k:'chat'},{id:'profile',i:'👤',k:'profile'}]},
-    broker:{av:'🤝',role:'Broker',cls:'broker',nav:[
+    broker:{av:'🤝',role:'Buyer',cls:'broker',nav:[
       {id:'home',i:'🏠',k:'home'},{id:'browse',i:'🔍',k:'browse'},
       {id:'deals',i:'📋',k:'deals'},{id:'chat',i:'💬',k:'chat'},{id:'profile',i:'👤',k:'profile'}]},
     transporter:{av:'🚛',role:'Transporter',cls:'transporter',nav:[
@@ -1052,7 +1057,7 @@ async function loadOffers(){
           <button class="btn btn-g btn-sm" style="flex:1;min-width:100px;" onclick="acceptOffer('${o.id}')">Accept</button>
           <button class="btn btn-og btn-sm" style="flex:1;min-width:100px;" onclick="openCounterOfferModal('${o.id}','${o.price}','${o.qty}','${o.cropName||'?'}')">Counter</button>
           <button class="btn btn-og btn-sm" style="flex:1;min-width:80px;" onclick="declineOffer('${o.id}')">Decline</button>
-          <button class="btn btn-og btn-sm" onclick="openChatFromListing('${o.listingId}','${S.user?.uid||'?'}','','${o.cropName||'?'}')">💬</button>
+          <button class="btn btn-og btn-sm" onclick="openChatFromOffer('${o.id}')">💬</button>
         </div></div>`;
     });
     if(history.length>0){
@@ -1195,11 +1200,14 @@ function scrBrowse(){
 async function loadListings(){
   const cont=document.getElementById('browse-list'),cnt=document.getElementById('browse-cnt');if(!cont)return;
   try{
-    const snap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
-    let listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
-    // Filter by user operating country
+    let listings=cacheGet('listings');
+    if(!listings){
+      const snap=await getDocs(query(collection(db,'listings'),where('status','==','available')));
+      listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
+      cacheSet('listings',listings);
+    }
     const userCountry=S.profile?.operatingCountry||S.profile?.country||'Rwanda';
-    if(userCountry!=='all')listings=listings.filter(l=>(l.country||'Rwanda')===userCountry||(l.loc||'').toLowerCase().includes(userCountry.toLowerCase()));
+    listings=userCountry!=='all'?listings.filter(l=>(l.country||'Rwanda')===userCountry||(l.loc||'').toLowerCase().includes(userCountry.toLowerCase())):listings;
     window._lc=listings;
     if(S.cropFilter!=='All')listings=listings.filter(l=>l.crop===S.cropFilter);
     if(cnt)cnt.textContent=listings.length+' listings';
@@ -1304,7 +1312,9 @@ window.openOfferModal=async function(lid){
       <div class="ms2">${fresh.crop} · ${fresh.price} RWF/kg · Listed by ${fresh.farmerName}${mp?` · Market: ${mp.price} RWF/kg`:''}</div>
       ${fresh.photos&&fresh.photos.length?`<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--g5);margin-bottom:6px;">PRODUCE PHOTOS</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${fresh.photos.map(p=>`<img src="${p}" onclick="this.style.width=this.style.width==='100%'?'80px':'100%'" style="width:80px;height:80px;border-radius:var(--rsm);object-fit:cover;cursor:zoom-in;transition:all 0.2s;" alt="produce">`).join('')}</div></div>`:''}
       <div style="background:var(--gl);border:1px solid var(--gb);border-radius:var(--rsm);padding:10px 13px;font-size:13px;color:var(--gd);margin-bottom:14px;">
-        ✅ <strong>${avail.toLocaleString()} kg available</strong> (${(fresh.qty||0).toLocaleString()} kg total${fresh.reserved>0?` · ${fresh.reserved.toLocaleString()} kg under other offers`:''})
+        ✅ <strong>${avail.toLocaleString()} kg available</strong> of ${(fresh.qty||0).toLocaleString()} kg total<br>
+        <span style="font-size:11px;color:var(--gm);">📍 Farmer location: <strong>${fresh.loc||'Not specified'}</strong></span>
+        ${S.profile?.loc?`<span style="font-size:11px;color:var(--g5);margin-left:8px;">· Your location: ${S.profile.loc}</span>`:''}
       </div>
       ${isLarge?`<div class="aqa-trigger">
         <div class="aqa-trigger-t">🔍 AQA Inspection recommended</div>
@@ -1567,8 +1577,66 @@ window.openJobModal=async function(jid){
 
 window.acceptJob=async function(jid){
   try{
+    const jSnap=await getDoc(doc(db,'jobs',jid));
+    if(!jSnap.exists()){toast('Job no longer available.');return;}
+    const j=jSnap.data();
+    const totalQty=j.qty||0;
+    const myCapacity=parseFloat(S.profile?.capacity||0)*1000; // tonnes→kg
+    // If transporter capacity < job qty, offer partial
+    if(myCapacity>0&&myCapacity<totalQty){
+      document.getElementById('modal-content').innerHTML=`
+        <div class="mt2">Accept partial load?</div>
+        <div class="ms2">This job has ${totalQty.toLocaleString()} kg but your registered capacity is ${myCapacity.toLocaleString()} kg.</div>
+        <div class="fg"><label class="fl">How much can you take? (kg)</label>
+          <input class="fi" id="partial-qty" type="number" value="${myCapacity}" min="1" max="${totalQty}" inputmode="numeric">
+        </div>
+        <div style="font-size:12px;color:var(--g5);margin-bottom:12px;">The remaining cargo will be posted as a new job for another transporter.</div>
+        <div class="mact">
+          <button class="btn btn-og" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-a" onclick="acceptJobPartial('${jid}',${totalQty},${j.grossPay||j.pay||0})">Accept my portion</button>
+        </div>`;
+      return; // Modal is already open from openJobModal
+    }
     await updateDoc(doc(db,'jobs',jid),{transporterId:S.user.uid,transporterName:S.profile.fname+' '+(S.profile.lname||''),status:'in_progress',acceptedAt:serverTimestamp()});
-    logEvent(analytics,'job_accepted');closeModal();toast('✅ Job accepted! Check your Active tab.');showScr('active');
+    logEvent(analytics,'job_accepted');closeModal();cacheClear();toast('✅ Job accepted! Check your Active tab.');showScr('active');
+  }catch(e){toast('❌ Error: '+e.message);}
+};
+
+window.acceptJobPartial=async function(jid,totalQty,totalPay){
+  const myQty=parseFloat(document.getElementById('partial-qty')?.value)||0;
+  if(!myQty||myQty<=0){toast('Please enter a valid quantity.');return;}
+  if(myQty>=totalQty){
+    // Taking full job
+    await updateDoc(doc(db,'jobs',jid),{transporterId:S.user.uid,transporterName:S.profile.fname+' '+(S.profile.lname||''),status:'in_progress',acceptedAt:serverTimestamp()});
+    closeModal();cacheClear();toast('✅ Full job accepted!');showScr('active');return;
+  }
+  try{
+    const jSnap=await getDoc(doc(db,'jobs',jid));
+    const j=jSnap.data();
+    const myRatio=myQty/totalQty;
+    const myGross=Math.round(totalPay*myRatio);
+    const myComm=Math.round(myGross*0.05);
+    const remainQty=totalQty-myQty;
+    const remainPay=totalPay-myGross;
+    // Update original job with my portion
+    await updateDoc(doc(db,'jobs',jid),{
+      qty:myQty,grossPay:myGross,deliveryComm:myComm,pay:myGross-myComm,
+      transporterId:S.user.uid,transporterName:S.profile.fname+' '+(S.profile.lname||''),
+      status:'in_progress',acceptedAt:serverTimestamp(),partial:true,
+    });
+    // Create remainder job for another transporter
+    const remainComm=Math.round(remainPay*0.05);
+    await addDoc(collection(db,'jobs'),{
+      ...j,id:undefined,
+      qty:remainQty,grossPay:remainPay,deliveryComm:remainComm,pay:remainPay-remainComm,
+      cargo:j.cargo?.replace(/[\d,]+ kg/,remainQty.toLocaleString()+' kg')||j.cargo,
+      transporterId:null,transporterName:null,
+      status:'open',partial:true,parentJobId:jid,
+      createdAt:serverTimestamp(),
+    });
+    closeModal();cacheClear();
+    toast('✅ Partial job accepted! Remaining '+remainQty.toLocaleString()+' kg posted as new job.');
+    showScr('active');
   }catch(e){toast('❌ Error: '+e.message);}
 };
 
@@ -2075,7 +2143,8 @@ function scrProfile(){
     </div>
     <button class="btn btn-g btn-full" onclick="saveProfile()">Save changes</button>
   </div>
-  <button class="btn btn-og btn-full" style="margin-top:0;" onclick="doLogout()">⏻ Sign out</button>`;
+  <button class="btn btn-ob btn-full" style="margin-top:8px;" onclick="exportMyData()">⬇ Download my data (CSV)</button>
+  <button class="btn btn-og btn-full" style="margin-top:8px;" onclick="doLogout()">⏻ Sign out</button>`;
 }
 
 window.saveProfile=async function(){
@@ -2199,8 +2268,9 @@ function triggerPostDealRatings(offerId){
 // ─── HELPERS ───
 function lcard(l,viewer){
   if(!window._lc)window._lc=[];if(!window._lc.find(x=>x.id===l.id))window._lc.push(l);
-  const avail=(l.qty||0)-(l.reserved||0);
-  const stat=l.status==='available'?`<span class="badge bg">Available</span>${l.reserved>0?` <span class="qty-res">${l.reserved.toLocaleString()} kg pending offers</span>`:''}`:'<span class="badge bgr">Sold</span>';
+  const avail=avail2||((l.qty||0)-(l.reserved||0));
+  const avail2=(l.qty||0)-(l.reserved||0);
+  const stat=l.status!=='available'?'<span class="badge bgr">Sold</span>':avail2<=0?'<span class="badge ba">Fully reserved</span>':'<span class="badge bg">Available</span>'+(l.reserved>0?` <span class="qty-res">${l.reserved.toLocaleString()} kg reserved</span>`:'');
   // icon lookup: use listing's own photo URL, or crop icon from admin, or emoji fallback
   const cropMeta=CROPS.find(c=>c.name===l.crop)||{};
   const iconUrl=(l.icon&&l.icon.startsWith('http'))?l.icon:(cropMeta.icon&&cropMeta.icon.startsWith('http'))?cropMeta.icon:null;
@@ -2221,7 +2291,7 @@ function lcard(l,viewer){
         <div class="lm">${l.loc} · <span class="qty-avail">${avail.toLocaleString()} kg available</span> · Ready ${dt}</div>
         <div style="margin-top:5px;">${stat}
           ${l.trustedSeller?'<span class="qbadge qbadge-trust">⭐ Trusted Seller</span>':''}
-          ${l.photoVerified?'<span class="qbadge qbadge-photo">📷 Photo Verified</span>':''}
+          ${l.photoVerified?`<span class="qbadge qbadge-photo" onclick="viewListingPhotos('${l.id}');event.stopPropagation();" style="cursor:pointer;">📷 ${l.photos?.length||1} photo${(l.photos?.length||1)>1?'s':''}</span>`:''}
           ${(l.qty>=2000||(l.price*l.qty)>=500000)?'<span class="qbadge qbadge-aqa">🔍 AQA eligible</span>':''}
         </div>
       </div>
@@ -2230,12 +2300,60 @@ function lcard(l,viewer){
     <div class="lf"><span style="font-size:12px;color:var(--g5);"><span class="star">★</span> ${(l.farmerRating||5).toFixed(1)} · ${l.farmerName}</span>${act}</div>
   </div>`;}
 
+window.viewListingPhotos=async function(listingId){
+  const l=window._lc?.find(x=>x.id===listingId);
+  const photos=l?.photos||[];
+  if(!photos.length){toast('No photos uploaded for this listing.');return;}
+  document.getElementById('modal-content').innerHTML=`
+    <div class="mt2">${l.crop} — Photos</div>
+    <div class="ms2">${l.farmerName} · ${l.loc}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      ${photos.map(p=>`<img src="${p}" style="width:100%;height:140px;object-fit:cover;border-radius:var(--rsm);cursor:pointer;" onclick="window.open('${p}','_blank')" alt="produce photo">`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--g5);text-align:center;margin-bottom:14px;">Tap any photo to open full size</div>
+    <div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button>
+    ${l.status==='available'?`<button class="btn btn-b" onclick="closeModal();openOfferModal('${listingId}')">Make offer</button>`:''}
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+};
+
+window.viewAQAReport=async function(aqaId){
+  try{
+    const snap=await getDoc(doc(db,'aqa_requests',aqaId));
+    if(!snap.exists()){toast('AQA report not found.');return;}
+    const a=snap.data();
+    const gradeColors={A:'var(--gm)',B:'var(--gb)',C:'var(--am)',D:'var(--rd)'};
+    const gradeColor=gradeColors[a.grade]||'var(--g5)';
+    document.getElementById('modal-content').innerHTML=`
+      <div class="mt2">Quality Inspection Report</div>
+      <div class="ms2">${a.crop} · ${a.location||'Farm visit'}</div>
+      <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:12px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+          <div><span style="color:var(--g5);">Grade</span><br><strong style="font-size:22px;color:${gradeColor};">${a.grade||'Pending'}</strong></div>
+          <div><span style="color:var(--g5);">Status</span><br><strong>${a.status}</strong></div>
+          <div><span style="color:var(--g5);">Quantity</span><br><strong>${(a.qty||0).toLocaleString()} kg</strong></div>
+          <div><span style="color:var(--g5);">Inspector</span><br><strong>${a.inspectorName||'AgriConnect Agent'}</strong></div>
+        </div>
+        ${a.notes?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--g1);font-size:12px;color:var(--g7);">Notes: ${a.notes}</div>`:''}
+      </div>
+      ${a.photos?.length?`<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--g5);margin-bottom:6px;">INSPECTION PHOTOS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${a.photos.map(p=>`<img src="${p}" style="width:100%;height:120px;object-fit:cover;border-radius:var(--rsm);cursor:pointer;" onclick="window.open('${p}','_blank')">`).join('')}
+        </div></div>`:'<div style="color:var(--g3);font-size:12px;margin-bottom:12px;">No inspection photos uploaded yet.</div>'}
+      <div class="mact">
+        <button class="btn btn-og" onclick="closeModal()">Close</button>
+        ${a.status==='completed'&&S.role==='broker'?`<button class="btn btn-g" onclick="closeModal();confirmAQAReport('${aqaId}')">Confirm quality ✓</button>`:''}
+      </div>`;
+    document.getElementById('modal').classList.add('open');
+  }catch(e){toast('❌ Could not load report: '+e.message);}
+};
+
 function jcard(j){
   return`<div class="jcard">
     <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><div class="jr">${j.from} → ${j.to}</div><span class="badge ${j.status==='negotiating'?'ba':'bg'}">${j.status==='negotiating'?'⚡ Negotiating':'Open'}</span></div>
     <div class="jd">${j.cargo}</div>
     ${j.returnLoad?`<div class="retload"><div style="font-size:16px;margin-right:4px;">🔄</div><div><div class="retload-t">Return load available!</div><div class="retload-s">${j.returnLoad.from} → ${j.returnLoad.to} · +${j.returnLoad.pay?.toLocaleString()} RWF</div></div></div>`:''}
-    <div class="jmg"><div><div class="jml">Cargo</div><div class="jmv">${j.cargo}</div></div><div><div class="jml">Pickup</div><div class="jmv">${j.pickup||'TBD'}</div></div><div><div class="jml">To</div><div class="jmv">${j.to}</div></div><div><div class="jml">Broker</div><div class="jmv">${j.brokerName}</div></div></div>
+    <div class="jmg"><div><div class="jml">Cargo</div><div class="jmv">${j.cargo}</div></div><div><div class="jml">📍 Pickup</div><div class="jmv">${j.from}</div></div><div><div class="jml">📍 Deliver to</div><div class="jmv">${j.to}</div></div><div><div class="jml">Buyer</div><div class="jmv">${j.brokerName}</div></div></div>
     <div style="display:flex;align-items:flex-end;justify-content:space-between;">
       <div>
         <div class="jpay">${(j.pay||0).toLocaleString()} RWF</div>
@@ -2282,7 +2400,7 @@ async function loadChatList(){
     const allChatsSnap=await getDocs(collection(db,'chats'));
     const chats=allChatsSnap.docs
       .map(d=>({id:d.id,...d.data()}))
-      .filter(c=>c.farmerId===S.user.uid||c.brokerId===S.user.uid)
+      .filter(c=>c.farmerId===S.user.uid||c.brokerId===S.user.uid||c.buyerId===S.user.uid)
       .sort((a,b)=>(b.lastAt?.seconds||0)-(a.lastAt?.seconds||0));
 
     let html='';
@@ -2463,7 +2581,14 @@ window.sendMsg=async function(chatId){
     const chatRef=doc(db,'chats',chatId);
     const chatSnap=await getDoc(chatRef);
     if(chatSnap.exists()){
-      await updateDoc(chatRef,{lastMessage:text.slice(0,60),lastAt:serverTimestamp(),unread:1});
+      // Increment unread for the OTHER party
+      const unreadField='unread_'+(S.role==='farmer'?'buyer':'farmer');
+      await updateDoc(chatRef,{
+        lastMessage:text.slice(0,60),
+        lastAt:serverTimestamp(),
+        unread:1,
+        [unreadField]:(((await getDoc(chatRef)).data()||{})[unreadField]||0)+1,
+      });
     }else{
       // Chat doc missing — recreate it (edge case)
       await setDoc(chatRef,{
@@ -2487,7 +2612,10 @@ window.openChatFromOffer=async function(offerId){
     const oSnap=await getDoc(doc(db,'offers',offerId));
     if(!oSnap.exists()){toast('Offer not found.');return;}
     const o=oSnap.data();
-    await openChatFromListing(o.listingId,o.farmerId,o.farmerName,o.cropName);
+    // Chat ID is always listingId_buyerId — buyer initiates
+    // Farmer opens the SAME chat by using buyer's ID
+    const chatId=makeChatId(o.listingId,o.brokerId);
+    await openChat(chatId);
   }catch(e){toast('❌ Could not open chat: '+e.message);}
 };
 
@@ -2846,6 +2974,37 @@ function setBadge(navId,count){
 }
 
 window.closeModal=function(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');};
+
+// ── CSV EXPORT FOR ALL ROLES ──
+window.exportMyData=async function(){
+  if(!S.user||!S.role){toast('Please log in first.');return;}
+  toast('⏳ Preparing your data...');
+  try{
+    let rows=[], cols=[], filename='';
+    if(S.role==='farmer'){
+      cols=['Crop','Qty(kg)','Price(RWF/kg)','Location','Status','Reserved(kg)','Date Posted','Photo Verified'];
+      const snap=await getDocs(query(collection(db,'listings'),where('userId','==',S.user.uid)));
+      rows=snap.docs.map(d=>{const l=d.data();return[l.crop,l.qty,l.price,l.loc,l.status,l.reserved||0,l.createdAt?.toDate?l.createdAt.toDate().toLocaleDateString():'',l.photoVerified?'Yes':'No'];});
+      filename='my_listings.csv';
+    } else if(S.role==='broker'){
+      cols=['Crop','Qty(kg)','My Price(RWF/kg)','Farmer Location','My Location','Status','Total Value(RWF)','Commission(RWF)','Date'];
+      const snap=await getDocs(query(collection(db,'offers'),where('brokerId','==',S.user.uid)));
+      rows=snap.docs.map(d=>{const o=d.data();return[o.cropName,o.qty,o.price,o.farmerLoc||'',S.profile?.loc||'',o.status,o.qty*o.price,Math.round(o.qty*o.price*0.03),o.createdAt?.toDate?o.createdAt.toDate().toLocaleDateString():''];});
+      filename='my_deals.csv';
+    } else if(S.role==='transporter'){
+      cols=['Route','Cargo','Qty(kg)','Gross Pay(RWF)','My Pay(RWF)','Commission(RWF)','Status','Accepted Date'];
+      const snap=await getDocs(query(collection(db,'jobs'),where('transporterId','==',S.user.uid)));
+      rows=snap.docs.map(d=>{const j=d.data();return[j.from+' → '+j.to,j.cargo,j.qty||'',j.grossPay||0,j.pay||0,j.deliveryComm||0,j.status,j.acceptedAt?.toDate?j.acceptedAt.toDate().toLocaleDateString():''];});
+      filename='my_deliveries.csv';
+    }
+    if(!rows.length){toast('No data to export yet.');return;}
+    const csv=[cols.join(','),...rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(','))].join('\n');
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download=filename;a.click();
+    toast('✅ Downloaded '+filename+' ('+rows.length+' records)');
+  }catch(e){toast('❌ Export error: '+e.message);}
+};
 window.toast=function(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
 function ts(t2){if(!t2)return'';const d=t2.toDate?t2.toDate():new Date(t2);const m=Math.floor((Date.now()-d)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
 
