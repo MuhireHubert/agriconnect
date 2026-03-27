@@ -392,6 +392,13 @@ const storage=getStorage(fbApp);
 // ─── CREDENTIALS ───
 const GOVT_ID="HUBIN-GOV-2026",GOVT_CODE="AgriGov@2026";
 
+// ─── COMMISSION RATES ───
+// Trade: 2% from farmer + 2% from buyer = 4% total platform revenue
+// Transport: 3% from transporter gross pay
+const TRADE_COMM_FARMER = 0.02;   // 2% deducted from farmer payout
+const TRADE_COMM_BUYER  = 0.02;   // 2% added to buyer cost
+const TRANSPORT_COMM    = 0.03;   // 3% platform fee on transport pay
+
 // ─── STATE ───
 let S={user:null,profile:null,role:null,authRole:null,cropFilter:'All',lang:'en',govtRegion:'all',govtCountry:'Rwanda',opCountry:'all',opRegion:'all'};
 // Simple cache to reduce Firestore reads
@@ -419,15 +426,15 @@ const LANGS={
     overview:'Overview',users:'Users',surplus:'Surplus',sms:'SMS',prices:'Prices',crops:'Crops',
   },
   rw:{lh:'Ubuhinzi bwawe,<br>ku isoko ryoroshye.',ls:"Igikoresho cy'itumanaho mu buhinzi bw'u Rwanda.",
-    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Umuguzi','lrd-broker':'Gura',
-    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ibipimo byUmusaruro',
-    'back-lbl':'Subira Inyuma','tab-in':'Injira','tab-reg':'Iyandikishe',
-    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina dini','lbl-lname':'Izina nyamuryango',
-    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo Ijambobanga',
+    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Muhinga','lrd-broker':'Reba ugure',
+    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ubumenyi bw\'inzara',
+    'back-lbl':'Garuka','tab-in':'Injira','tab-reg':'Iyandikishe',
+    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina','lbl-lname':'Inkomoko',
+    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo',
     'login-btn':'Injira','reg-btn':'Fungura konti',
-    greeting:'Muraho',welcome:'Murakaza Neza',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ubusabe',
-    profile:'Umwirondoro',browse:'Shakisha',deals:'Dilu',jobs:'Akazi',active:'Biri mu nzira',earnings:'Inyungu',
-    overview:'Incamake',users:'Abakoresha',surplus:'Umurengera',sms:'Mesaje',prices:'Ibiciro',crops:'Ibihingwa',
+    greeting:'Muraho',welcome:'Imbaho yanjye',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ibirego',
+    profile:'Umwirondoro',browse:'Reba',deals:'Amasezerano',jobs:'Akazi',active:'Biragenda',earnings:'Inyungu',
+    overview:'Incamake',users:'Abakoresha',surplus:'Umuhamagaro',sms:'SMS',prices:'Ibiciro',crops:'Imbuto',
   },
   sw:{lh:'Kutoka shambani hadi sokoni,<br>bila msongo wa mawazo.',ls:"Mfumo wa ugavi wa kilimo wa Rwanda. Hakuna mshangao wa bei.",
     'lr-farmer':'Mkulima','lrd-farmer':'Tangaza mazao','lr-broker':'Dalali','lrd-broker':'Tazama na biashara',
@@ -913,7 +920,11 @@ function scrHome(){
 function scrMarket(){
   return`<div class="sh2"><span class="st">Live prices</span></div>
   <div class="card"><div class="ct">Kigali markets — today</div>
-    ${CROPS.map(c=>`<div class="trow"><span class="tc">${c.emoji||c.icon||'🌾'} ${c.name}</span><span class="tpr">${c.price} RWF/kg</span><span class="tch ${(c.change||0)>0?'up':'dn'}">${(c.change||0)>0?'+':''}${c.change||0}%</span></div>`).join('')}
+    ${(()=>{
+      const loc=S.profile?.loc||'';
+      const prov=loc.includes('Eastern')?'Eastern Province':loc.includes('Western')?'Western Province':loc.includes('Northern')?'Northern Province':loc.includes('Southern')?'Southern Province':loc.includes('Kigali')?'Kigali City':'Rwanda (All)';
+      return CROPS.map(c=>{const p=c.prices?.[prov]||c.prices?.['Rwanda (All)']||c.price||0;return`<div class="trow"><span class="tc">${c.emoji||'🌾'} ${c.name}</span><span class="tpr">${p.toLocaleString()} RWF/kg</span><span class="tch ${(c.change||0)>0?'up':'dn'}">${(c.change||0)>0?'+':''}${c.change||0}%</span></div>`;}).join('');
+    })()}
   </div>
   <div class="tip"><div class="tip-t">💡 Tip</div><div class="tip-b">Brokers typically offer 5–10% below market. Know your floor before accepting any offer!</div></div>
   <div class="card"><div class="ct">SMS price alerts</div>
@@ -967,7 +978,13 @@ window.previewListingPhotos=function(input){
 window.updatePriceTip=function(){
   const crop=CROPS.find(c=>c.name===document.getElementById('p-crop')?.value);
   const el=document.getElementById('tip-body');
-  if(el&&crop)el.textContent=`${crop.name} is ${crop.price} RWF/kg in Kigali today. Brokers offer ~${Math.round(crop.price*0.93)}–${Math.round(crop.price*0.97)} RWF/kg.`;
+  if(el&&crop){
+    const loc=S.profile?.loc||'';
+    const prov=loc.includes('Eastern')?'Eastern Province':loc.includes('Western')?'Western Province':loc.includes('Northern')?'Northern Province':loc.includes('Southern')?'Southern Province':loc.includes('Kigali')?'Kigali City':'Rwanda (All)';
+    const regionPrice=crop.prices?.[prov]||crop.prices?.['Rwanda (All)']||crop.price||0;
+    const buyerLow=Math.round(regionPrice*0.93),buyerHigh=Math.round(regionPrice*0.97);
+    el.textContent=`${crop.name} is ${regionPrice.toLocaleString()} RWF/kg in ${prov} today. Buyers offer ~${buyerLow.toLocaleString()}–${buyerHigh.toLocaleString()} RWF/kg.`;
+  }
 };
 
 window.submitListing=async function(){
@@ -1049,7 +1066,7 @@ async function loadOffers(){
         <div style="font-size:13px;color:var(--g5);margin-bottom:8px;">Wants <strong>${o.qty.toLocaleString()} kg</strong> of ${o.cropName||'produce'}</div>
         <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span style="color:var(--g5)">Offer value</span><span style="font-weight:700">${total.toLocaleString()} RWF</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--g5)">Commission (3%)</span><span style="color:var(--rd)">-${comm.toLocaleString()} RWF</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--g5)">Your platform fee (2%)</span><span style="color:var(--rd)">-${comm.toLocaleString()} RWF</span></div>
           ${aqaFee>0?`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--g5)">AQA fee (1%)</span><span style="color:var(--am)">-${aqaFee.toLocaleString()} RWF</span></div>`:''}
           <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:1px solid var(--g1);padding-top:6px;margin-top:4px;"><span style="color:var(--g9)">You receive</span><span style="color:var(--gm)">${youReceive.toLocaleString()} RWF</span></div>
         </div>
@@ -1079,7 +1096,7 @@ window.acceptOffer=async function(oid){
     const lSnap=await getDoc(doc(db,'listings',o.listingId));
     const l=lSnap.exists()?lSnap.data():{};
     const totalValue=o.price*o.qty;
-    const commission=Math.round(totalValue*0.03);
+    const commission=Math.round(totalValue*TRADE_COMM_FARMER); // farmer pays 2%
     // Mark offer accepted
     await updateDoc(doc(db,'offers',oid),{status:'accepted',acceptedAt:serverTimestamp()});
     // Mark listing sold (or reduce available qty for partial)
@@ -1131,7 +1148,7 @@ window.acceptOffer=async function(oid){
 async function createTransportJob(oid,o,l){
   // Use broker's proposed rate if set, otherwise estimate 30 RWF/kg
   const grossPay=o.proposedTransportPay||Math.round((o.qty||0)*30);
-  const deliveryComm=Math.round(grossPay*0.05);
+  const deliveryComm=Math.round(grossPay*TRANSPORT_COMM);
   const netPay=grossPay-deliveryComm;
   await addDoc(collection(db,'jobs'),{
     offerId:oid,
@@ -1415,7 +1432,7 @@ window.submitOffer=async function(lid,farmerId,cropName,farmerName,maxAvail){
     const aqaRequested=document.getElementById('mo-aqa')?.checked||false;
     const aqaFee=aqaRequested?Math.round(price*qty*0.01):0;
     const totalValue=price*qty;
-    const commission=Math.round(totalValue*0.03);
+    const commission=Math.round(totalValue*TRADE_COMM_FARMER); // farmer pays 2%
     const proposedTransportPay=parseFloat(document.getElementById('mo-tpay')?.value)||Math.round(qty*30);
     // Save offer
     const offerRef=await addDoc(collection(db,'offers'),{
@@ -1561,7 +1578,7 @@ window.openJobModal=async function(jid){
         Broker: ${j.brokerName}<br>
         <span style="color:var(--g3)">──────────────</span><br>
         Broker's offer: <strong>${(j.grossPay||j.pay||0).toLocaleString()} RWF</strong><br>
-        Platform fee (5%): <span style="color:var(--rd)">-${(j.deliveryComm||0).toLocaleString()} RWF</span><br>
+        Platform fee (3%): <span style="color:var(--rd)">-${(j.deliveryComm||0).toLocaleString()} RWF</span><br>
         You earn: <strong style="color:var(--am);font-size:15px;">${(j.pay||0).toLocaleString()} RWF</strong>
       </div>
     </div>
@@ -1615,7 +1632,7 @@ window.acceptJobPartial=async function(jid,totalQty,totalPay){
     const j=jSnap.data();
     const myRatio=myQty/totalQty;
     const myGross=Math.round(totalPay*myRatio);
-    const myComm=Math.round(myGross*0.05);
+    const myComm=Math.round(myGross*TRANSPORT_COMM);
     const remainQty=totalQty-myQty;
     const remainPay=totalPay-myGross;
     // Update original job with my portion
@@ -1625,7 +1642,7 @@ window.acceptJobPartial=async function(jid,totalQty,totalPay){
       status:'in_progress',acceptedAt:serverTimestamp(),partial:true,
     });
     // Create remainder job for another transporter
-    const remainComm=Math.round(remainPay*0.05);
+    const remainComm=Math.round(remainPay*TRANSPORT_COMM);
     await addDoc(collection(db,'jobs'),{
       ...j,id:undefined,
       qty:remainQty,grossPay:remainPay,deliveryComm:remainComm,pay:remainPay-remainComm,
@@ -2278,10 +2295,10 @@ function lcard(l,viewer){
     ?`<img src="${iconUrl}" style="width:46px;height:46px;border-radius:var(--rsm);object-fit:cover;" alt="${l.crop}">`
     :(l.emoji||cropMeta.emoji||'🌾');
   const act=viewer==='farmer'
-    ?`<button class="btn btn-og btn-sm" onclick="toast('${l.crop} · ${l.qty?.toLocaleString()} kg · ${l.price} RWF/kg')">View</button>`
+    ?`<button class="btn btn-og btn-sm" onclick="viewListingDetail('${l.id}')">Details</button>`
     :`<div style="display:flex;gap:6px;align-items:center;">
-        <button class="btn btn-og btn-sm" onclick="openChatFromListing('${l.id}','${l.userId}','${l.farmerName}','${l.crop}')">💬 Chat</button>
-        <button class="btn btn-b btn-sm" onclick="openOfferModal('${l.id}')">Make offer</button>
+        <button class="btn btn-og btn-sm" onclick="viewListingDetail('${l.id}')">📸 Details</button>
+        <button class="btn btn-b btn-sm" onclick="openOfferModal('${l.id}')">Offer</button>
       </div>`;
   const dt=l.date?new Date(l.date).toLocaleDateString('en-RW',{day:'numeric',month:'short'}):'now';
   return`<div class="lcard lcard-${l.type||'other'}">
@@ -2299,6 +2316,70 @@ function lcard(l,viewer){
     </div>
     <div class="lf"><span style="font-size:12px;color:var(--g5);"><span class="star">★</span> ${(l.farmerRating||5).toFixed(1)} · ${l.farmerName}</span>${act}</div>
   </div>`;}
+
+window.viewListingDetail=async function(listingId){
+  // Get from cache or Firestore
+  let l=window._lc?.find(x=>x.id===listingId);
+  if(!l){
+    const snap=await getDoc(doc(db,'listings',listingId)).catch(()=>null);
+    if(!snap?.exists()){toast('Listing not found.');return;}
+    l={id:listingId,...snap.data()};
+  }
+  const photos=l.photos||[];
+  const avail=Math.max(0,(l.qty||0)-(l.reserved||0));
+  const isBuyer=S.role==='broker';
+  // Find crop market price for this region
+  const cropMeta=CROPS.find(c=>c.name===l.crop)||{};
+  const marketPrice=cropMeta.prices?.[S.profile?.loc?.split(',')[0]]||cropMeta.prices?.['Rwanda (All)']||cropMeta.price||0;
+
+  document.getElementById('modal-content').innerHTML=`
+    <div style="font-size:18px;font-weight:700;margin-bottom:2px;">${l.crop}</div>
+    <div style="font-size:12px;color:var(--g5);margin-bottom:14px;">Posted by ${l.farmerName} · ⭐ ${(l.farmerRating||5).toFixed(1)}</div>
+
+    ${photos.length?`<div style="display:grid;grid-template-columns:repeat(${Math.min(photos.length,3)},1fr);gap:6px;margin-bottom:14px;">
+      ${photos.map(p=>`<img src="${p}" style="width:100%;height:110px;object-fit:cover;border-radius:var(--rsm);cursor:zoom-in;" onclick="window.open('${p}','_blank')" alt="produce">`).join('')}
+    </div>`:'<div style="background:var(--g1);border-radius:var(--rsm);height:80px;display:flex;align-items:center;justify-content:center;color:var(--g3);font-size:13px;margin-bottom:14px;">No photos uploaded</div>'}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">PRICE</div>
+        <div style="font-size:18px;font-weight:700;color:var(--gm);">${l.price} RWF/kg</div>
+        ${marketPrice&&Math.abs(l.price-marketPrice)>5?`<div style="font-size:10px;color:${l.price<marketPrice?'var(--gm)':'var(--am)'};">${l.price<marketPrice?'▼ Below':'▲ Above'} market (${marketPrice} RWF/kg)</div>`:''}
+      </div>
+      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">AVAILABLE</div>
+        <div style="font-size:18px;font-weight:700;">${avail.toLocaleString()} kg</div>
+        <div style="font-size:10px;color:var(--g3);">${(avail/1000).toFixed(1)} tonnes</div>
+      </div>
+      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">📍 LOCATION</div>
+        <div style="font-size:13px;font-weight:600;">${l.loc||'Not specified'}</div>
+      </div>
+      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">READY FROM</div>
+        <div style="font-size:13px;font-weight:600;">${l.date?new Date(l.date).toLocaleDateString('en-RW',{day:'numeric',month:'short',year:'numeric'}):'Now'}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+      ${l.trustedSeller?'<span class="qbadge qbadge-trust">⭐ Trusted Seller</span>':''}
+      ${l.photoVerified?'<span class="qbadge qbadge-photo">📷 Photo Verified</span>':''}
+      ${(l.qty>=2000||(l.price*l.qty)>=500000)?'<span class="qbadge qbadge-aqa">🔍 AQA Eligible</span>':''}
+    </div>
+
+    ${l.notes?`<div style="background:var(--g0);border-radius:var(--rsm);padding:10px;font-size:13px;color:var(--g7);margin-bottom:12px;"><strong>Notes:</strong> ${l.notes}</div>`:''}
+
+    ${isBuyer&&avail>0?`<div style="background:var(--gl);border-radius:var(--rsm);padding:10px;font-size:12px;color:var(--gd);margin-bottom:12px;">
+      💰 If you buy ${avail.toLocaleString()} kg: total <strong>${(l.price*avail).toLocaleString()} RWF</strong> + 2% fee = <strong>${Math.round(l.price*avail*1.02).toLocaleString()} RWF</strong>
+    </div>`:''}
+
+    <div class="mact">
+      <button class="btn btn-og" onclick="closeModal()">Close</button>
+      ${isBuyer&&avail>0?`<button class="btn btn-og btn-sm" onclick="closeModal();openChatFromListing('${l.id}','${l.userId}','${l.farmerName}','${l.crop}')">💬 Chat</button>`:''}
+      ${isBuyer&&avail>0?`<button class="btn btn-b" onclick="closeModal();openOfferModal('${l.id}')">Make offer</button>`:''}
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+};
 
 window.viewListingPhotos=async function(listingId){
   const l=window._lc?.find(x=>x.id===listingId);
@@ -2358,7 +2439,7 @@ function jcard(j){
       <div>
         <div class="jpay">${(j.pay||0).toLocaleString()} RWF</div>
         ${j.returnLoad?`<div style="font-size:11px;color:var(--gm);font-weight:700;">+${j.returnLoad.pay?.toLocaleString()} return = ${((j.pay||0)+(j.returnLoad?.pay||0)).toLocaleString()} total</div>`:''}
-        <div style="font-size:10px;color:var(--g3);margin-top:2px;">after 5% platform fee</div>
+        <div style="font-size:10px;color:var(--g3);margin-top:2px;">after 3% platform fee</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
         <button class="btn btn-a btn-sm" onclick="openJobModal('${j.id}')">View & Accept</button>
@@ -2725,7 +2806,7 @@ window.updateCounterPreview=function(qty){
   const p=parseFloat(document.getElementById('co-price')?.value)||0;
   const total=p*qty;
   const el=document.getElementById('co-preview');
-  if(el)el.innerHTML=`New total: <strong>${total.toLocaleString()} RWF</strong> · You receive: <strong>${Math.round(total*0.97).toLocaleString()} RWF</strong> after 3% commission`;
+  if(el)el.innerHTML=`New total: <strong>${total.toLocaleString()} RWF</strong> · You receive: <strong>${Math.round(total*(1-TRADE_COMM_FARMER)).toLocaleString()} RWF</strong> after 2% platform fee`;
 };
 
 window.submitCounterOffer=async function(oid,qty){
@@ -2750,7 +2831,7 @@ window.submitCounterOffer=async function(oid,qty){
 window.openTransportCounterModal=function(jid,currentPay){
   document.getElementById('modal-content').innerHTML=`
     <div class="mt2">Propose your rate</div>
-    <div class="ms2">The broker posted <strong>${parseFloat(currentPay).toLocaleString()} RWF</strong> for this job. You keep 95% after the 5% platform fee. Propose a different amount if you need more — the broker decides.</div>
+    <div class="ms2">The broker posted <strong>${parseFloat(currentPay).toLocaleString()} RWF</strong> for this job. You keep 97% after the 3% platform fee. Propose a different amount if you need more — the broker decides.</div>
     <div class="fg"><label class="fl">Your proposed pay (RWF total)</label>
       <input class="fi" id="tp-pay" type="number" value="${currentPay}" min="1" inputmode="numeric" oninput="updateTransportPreview()">
     </div>
@@ -2768,9 +2849,9 @@ window.openTransportCounterModal=function(jid,currentPay){
 
 window.updateTransportPreview=function(){
   const pay=parseFloat(document.getElementById('tp-pay')?.value)||0;
-  const net=Math.round(pay*0.95);
+  const net=Math.round(pay*(1-TRANSPORT_COMM));
   const el=document.getElementById('tp-preview');
-  if(el)el.innerHTML=`You propose: <strong>${pay.toLocaleString()} RWF</strong> · After 5% platform fee: <strong>${net.toLocaleString()} RWF</strong> to you`;
+  if(el)el.innerHTML=`You propose: <strong>${pay.toLocaleString()} RWF</strong> · After 3% platform fee: <strong>${net.toLocaleString()} RWF</strong> to you`;
 };
 
 window.submitTransportCounter=async function(jid){
@@ -2844,7 +2925,7 @@ window.acceptTransportCounter=async function(jid,idx){
     // Mark chosen as accepted, others as declined
     counters.forEach((c,i)=>c.status=i===idx?'accepted':'declined');
     const grossPay=chosen.proposedPay;
-    const deliveryComm=Math.round(grossPay*0.05);
+    const deliveryComm=Math.round(grossPay*TRANSPORT_COMM);
     await updateDoc(doc(db,'jobs',jid),{
       counterOffers:counters,
       transporterId:chosen.transporterId,
@@ -2883,7 +2964,7 @@ window.acceptCounterOffer=async function(oid){
     await updateDoc(doc(db,'offers',oid),{
       price:o.counterPrice,
       totalValue:o.counterPrice*o.qty,
-      commission:Math.round(o.counterPrice*o.qty*0.03),
+      commission:Math.round(o.counterPrice*o.qty*TRADE_COMM_BUYER),
       status:'pending',
       counterAccepted:true,
       counterAcceptedAt:serverTimestamp(),
