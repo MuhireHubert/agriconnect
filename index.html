@@ -415,7 +415,7 @@ function cleanPhone(p){return p.replace(/\D/g,'').replace(/^250/,'').replace(/^0
 // ─── i18n ───
 const LANGS={
   en:{lh:'From farm to market,<br>without the chaos.',ls:"Rwanda's digital agri supply chain. No price shocks. No empty trucks.",
-    'lr-farmer':'Farmer','lrd-farmer':'Post & sell produce','lr-broker':'Broker','lrd-broker':'Browse & trade',
+    'lr-farmer':'Farmer','lrd-farmer':'Post & sell produce','lr-broker':'Buyer','lrd-broker':'Browse & trade',
     'lr-transporter':'Transporter','lrd-transporter':'Find cargo jobs','lr-govt':'Government','lrd-govt':'Famine intelligence — restricted',
     'back-lbl':'Back','tab-in':'Sign in','tab-reg':'Register',
     'lbl-phone':'Phone number','lbl-pass':'Password','lbl-fname':'First name','lbl-lname':'Last name',
@@ -426,15 +426,15 @@ const LANGS={
     overview:'Overview',users:'Users',surplus:'Surplus',sms:'SMS',prices:'Prices',crops:'Crops',
   },
   rw:{lh:'Ubuhinzi bwawe,<br>ku isoko ryoroshye.',ls:"Igikoresho cy'itumanaho mu buhinzi bw'u Rwanda.",
-    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Muhinga','lrd-broker':'Reba ugure',
-    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ubumenyi bw\'inzara',
-    'back-lbl':'Garuka','tab-in':'Injira','tab-reg':'Iyandikishe',
-    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina','lbl-lname':'Inkomoko',
-    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo',
+    'lr-farmer':'Umuhinzi','lrd-farmer':'Tangaza umusaruro','lr-broker':'Umuguzi','lrd-broker':'Gura',
+    'lr-transporter':'Umushoferi','lrd-transporter':'Shakisha akazi','lr-govt':'Leta','lrd-govt':'Ibipimo byUmusaruro',
+    'back-lbl':'Subira Inyuma','tab-in':'Injira','tab-reg':'Iyandikishe',
+    'lbl-phone':'Numero ya telefoni','lbl-pass':'Ijambobanga','lbl-fname':'Izina dini','lbl-lname':'Izina nyamuryango',
+    'lbl-rphone':'Numero ya telefoni','lbl-loc':'Akarere / Aho utuye','lbl-pass2':'Ijambobanga','lbl-conf':'Subiramo Ijambobanga',
     'login-btn':'Injira','reg-btn':'Fungura konti',
-    greeting:'Muraho',welcome:'Imbaho yanjye',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ibirego',
-    profile:'Umwirondoro',browse:'Reba',deals:'Amasezerano',jobs:'Akazi',active:'Biragenda',earnings:'Inyungu',
-    overview:'Incamake',users:'Abakoresha',surplus:'Umuhamagaro',sms:'SMS',prices:'Ibiciro',crops:'Imbuto',
+    greeting:'Muraho',welcome:'Murakaza Neza',home:'Ahabanza',market:'Isoko',post:'Tangaza',offers:'Ubusabe',
+    profile:'Umwirondoro',browse:'Shakisha',deals:'Dilu',jobs:'Akazi',active:'Biri mu nzira',earnings:'Inyungu',
+    overview:'Incamake',users:'Abakoresha',surplus:'Umurengera',sms:'Mesaje',prices:'Ibiciro',crops:'Ibihingwa',
   },
   sw:{lh:'Kutoka shambani hadi sokoni,<br>bila msongo wa mawazo.',ls:"Mfumo wa ugavi wa kilimo wa Rwanda. Hakuna mshangao wa bei.",
     'lr-farmer':'Mkulima','lrd-farmer':'Tangaza mazao','lr-broker':'Dalali','lrd-broker':'Tazama na biashara',
@@ -926,7 +926,7 @@ function scrMarket(){
       return CROPS.map(c=>{const p=c.prices?.[prov]||c.prices?.['Rwanda (All)']||c.price||0;return`<div class="trow"><span class="tc">${c.emoji||'🌾'} ${c.name}</span><span class="tpr">${p.toLocaleString()} RWF/kg</span><span class="tch ${(c.change||0)>0?'up':'dn'}">${(c.change||0)>0?'+':''}${c.change||0}%</span></div>`;}).join('');
     })()}
   </div>
-  <div class="tip"><div class="tip-t">💡 Tip</div><div class="tip-b">Brokers typically offer 5–10% below market. Know your floor before accepting any offer!</div></div>
+  <div class="tip"><div class="tip-t">💡 Tip</div><div class="tip-b">Buyers typically offer 5–10% below market. Know your floor before accepting any offer!</div></div>
   <div class="card"><div class="ct">SMS price alerts</div>
     <p style="font-size:13px;color:var(--g5);margin-bottom:12px;">Get price updates even without internet — works on any basic phone.</p>
     <button class="btn btn-g btn-full" onclick="toast('✅ SMS price alerts activated!')">Activate SMS alerts</button>
@@ -1039,7 +1039,7 @@ window.submitListing=async function(){
       trustedSeller:isTrusted,status:'available',reserved:0,createdAt:serverTimestamp()
     });
     logEvent(analytics,'listing_posted',{crop:cropName,qty,price});
-    toast('✅ Listing posted! Brokers can now see it.');showScr('home');
+    toast('✅ Listing posted! Buyers can now see it.');showScr('home');
   }catch(e){toast('❌ Error: '+e.message);btn.disabled=false;btn.textContent='Post listing';}
 };
 
@@ -1153,7 +1153,7 @@ async function createTransportJob(oid,o,l){
   await addDoc(collection(db,'jobs'),{
     offerId:oid,
     farmerId:o.farmerId||S.user?.uid||'',brokerId:o.brokerId,
-    farmerName:o.farmerName||'Farmer',brokerName:o.brokerName||'Broker',
+    farmerName:o.farmerName||'Farmer',brokerName:o.brokerName||'Buyer',
     from:l.loc||'Farm',to:o.deliveryLoc||'Kigali',
     cargo:`${l.crop||o.cropName} · ${(o.qty||0).toLocaleString()} kg`,
     qty:o.qty,crop:l.crop||o.cropName,
@@ -1178,7 +1178,7 @@ window.declineOffer=async function(oid){
 // BROKER SCREENS
 // ═══════════════════════════════════════════════════
 function scrBrokerHome(){
-  return`<p class="greeting">Good morning 👋</p><p class="welcome">Broker dashboard</p>
+  return`<p class="greeting">Good morning 👋</p><p class="welcome">Buyer dashboard</p>
   <div class="sg">
     <div class="sb"><div class="sl">Available listings</div><div class="sv" id="b-l">—</div><div class="ss" style="color:var(--bl)">browse now</div></div>
     <div class="sb"><div class="sl">Open offers</div><div class="sv" id="b-o">—</div><div class="ss" style="color:var(--am)">pending</div></div>
@@ -1575,9 +1575,9 @@ window.openJobModal=async function(jid){
       <div style="font-size:13px;color:var(--g5);line-height:1.9;">
         Cargo: <strong>${j.cargo}</strong><br>
         Pickup: ${j.pickup||'TBD'}<br>
-        Broker: ${j.brokerName}<br>
+        Buyer: ${j.brokerName}<br>
         <span style="color:var(--g3)">──────────────</span><br>
-        Broker's offer: <strong>${(j.grossPay||j.pay||0).toLocaleString()} RWF</strong><br>
+        Buyer offer: <strong>${(j.grossPay||j.pay||0).toLocaleString()} RWF</strong><br>
         Platform fee (3%): <span style="color:var(--rd)">-${(j.deliveryComm||0).toLocaleString()} RWF</span><br>
         You earn: <strong style="color:var(--am);font-size:15px;">${(j.pay||0).toLocaleString()} RWF</strong>
       </div>
@@ -2455,8 +2455,8 @@ function jcard(j){
 const PHONE_REGEX=/(?:\+?250|0)?7[2389]\d{7}|\+?25078\d{7}|0\d{9}/g;
 
 function anonId(uid,role){
-  if(!uid)return role==='farmer'?'Farmer #????':'Broker #????';
-  return role==='farmer'?`Farmer #${uid.slice(-4).toUpperCase()}`:`Broker #${uid.slice(-4).toUpperCase()}`;
+  if(!uid)return role==='farmer'?'Farmer #????':'Buyer #????';
+  return role==='farmer'?`Farmer #${uid.slice(-4).toUpperCase()}`:`Buyer #${uid.slice(-4).toUpperCase()}`;
 }
 
 // Build a deterministic chat ID from listing + broker
@@ -2515,7 +2515,7 @@ async function loadChatList(){
       return;
     }
     html+=chats.map(c=>{
-      const otherName=S.role==='farmer'?(c.brokerName||'Broker'):(c.farmerName||'Farmer');
+      const otherName=S.role==='farmer'?(c.brokerName||'Buyer'):(c.farmerName||'Farmer');
       return`<div class="card" style="cursor:pointer;margin-bottom:10px;" onclick="openChat('${c.id}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
@@ -2573,7 +2573,7 @@ async function loadChatMsgs(chatId){
     }
     const chatData=chatSnap.data();
     const titleEl=document.getElementById('chat-title');
-    const otherName=S.role==='farmer'?(chatData.brokerName||'Broker'):(chatData.farmerName||'Farmer');
+    const otherName=S.role==='farmer'?(chatData.brokerName||'Buyer'):(chatData.farmerName||'Farmer');
     if(titleEl)titleEl.textContent=`${otherName} · ${chatData.cropName||'Deal'}`;
 
     // Get messages subcollection
@@ -2735,7 +2735,7 @@ window.requestAQA=async function(chatId){
     await addDoc(collection(db,'aqa_requests'),{
       chatId,listingId:c.listingId||'',
       farmerId:c.farmerId||'',farmerName:c.farmerName||'Farmer',
-      brokerId:c.brokerId||'',brokerName:c.brokerName||'Broker',
+      brokerId:c.brokerId||'',brokerName:c.brokerName||'Buyer',
       crop:c.cropName||'Produce',location:'',qty:0,dealValue:0,fee:0,
       status:'pending',photos:[],notes:'',createdAt:serverTimestamp(),
     });
@@ -2784,7 +2784,7 @@ window.openCounterOfferModal=function(oid,currentPrice,currentQty,cropName){
     <div class="mt2">Counter offer</div>
     <div class="ms2">Propose your own price. The broker will see your counter and can accept or decline.</div>
     <div style="background:var(--g0);border:1px solid var(--g1);border-radius:var(--rsm);padding:10px 13px;margin-bottom:14px;font-size:13px;">
-      Broker offered: <strong>${parseFloat(currentPrice).toLocaleString()} RWF/kg</strong> for <strong>${parseFloat(currentQty).toLocaleString()} kg</strong> of ${cropName}
+      Buyer offered: <strong>${parseFloat(currentPrice).toLocaleString()} RWF/kg</strong> for <strong>${parseFloat(currentQty).toLocaleString()} kg</strong> of ${cropName}
     </div>
     <div class="fg"><label class="fl">Your counter price (RWF/kg)</label>
       <input class="fi" id="co-price" type="number" value="${currentPrice}" min="1" inputmode="numeric"
@@ -3148,7 +3148,7 @@ const ONBOARDING_STEPS = {
     {icon:'💬', title:'Chat safely', body:'Message brokers directly in the Chat tab. Phone numbers are blocked — all deals stay on the platform for your protection.'},
   ],
   broker: [
-    {icon:'🤝', title:'Welcome, Broker!', body:'AgriConnect gives you direct access to hundreds of Rwandan farmers. Browse live listings, negotiate prices, and confirm deals in minutes.'},
+    {icon:'🤝', title:'Welcome, Buyer!', body:'AgriConnect gives you direct access to hundreds of Rwandan farmers. Browse live listings, negotiate prices, and confirm deals in minutes.'},
     {icon:'🔍', title:'Browse & filter listings', body:'Use the Browse tab to find produce by crop type. Look for ⭐ Trusted Seller and 📷 Photo Verified badges for confident buying.'},
     {icon:'💰', title:'Make smart offers', body:'Propose your price and quantity. You can negotiate — and farmers can counter-offer back. The 3% commission is only charged on confirmed deals.'},
     {icon:'🔍', title:'Quality assurance', body:'For large orders (2t+ or 500k+ RWF), you can request an AQA field inspection. Our agent visits the farm, sends you a graded report, then you confirm.'},
@@ -3157,7 +3157,7 @@ const ONBOARDING_STEPS = {
   transporter: [
     {icon:'🚛', title:'Welcome, Transporter!', body:'AgriConnect matches you with cargo jobs across Rwanda. No more driving empty — our return load matching earns you up to 40% more per trip.'},
     {icon:'📦', title:'Browse open jobs', body:'The Jobs tab shows all available cargo runs. Filter by location. Jobs show full route, cargo weight, and proposed pay before you commit.'},
-    {icon:'💬', title:'Negotiate your rate', body:'Not happy with the proposed pay? Tap Counter on any job and propose your rate. The broker reviews all proposals and picks the best offer.'},
+    {icon:'💬', title:'Negotiate your rate', body:'Not happy with the proposed pay? Tap Counter on any job and propose your rate. The buyer reviews all proposals and picks the best offer.'},
     {icon:'🔄', title:'Return load matching', body:'Jobs marked 🔄 have cargo available for the return trip. Accept both directions and nearly double your earnings on the same fuel.'},
     {icon:'⭐', title:'Earn ratings', body:'Farmers and brokers rate you after each delivery. A strong rating means you get offered the best jobs first.'},
   ],
