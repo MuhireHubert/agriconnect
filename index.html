@@ -1223,13 +1223,28 @@ async function loadListings(){
       listings=byDate(snap.docs.map(d=>({id:d.id,...d.data()})));
       cacheSet('listings',listings);
     }
-    const userCountry=S.profile?.operatingCountry||S.profile?.country||'Rwanda';
-    listings=userCountry!=='all'?listings.filter(l=>(l.country||'Rwanda')===userCountry||(l.loc||'').toLowerCase().includes(userCountry.toLowerCase())):listings;
+    // Country filter — only apply if user explicitly set a non-Rwanda country
+    // Default: show ALL listings (listings posted before country field existed have no country tag)
+    const userCountry=S.profile?.operatingCountry||S.profile?.country||'';
+    if(userCountry&&userCountry!=='Rwanda'&&userCountry!=='all'){
+      const filtered=listings.filter(l=>
+        !l.country||                                          // no country tag = always show
+        l.country===userCountry||                            // exact match
+        (l.loc||'').toLowerCase().includes(userCountry.toLowerCase()) // location string match
+      );
+      // Only apply filter if it doesn't hide everything
+      if(filtered.length>0) listings=filtered;
+    }
     window._lc=listings;
     if(S.cropFilter!=='All')listings=listings.filter(l=>l.crop===S.cropFilter);
-    if(cnt)cnt.textContent=listings.length+' listings';
-    cont.innerHTML=listings.length===0?`<div class="empty">No listings${S.cropFilter!=='All'?' for '+S.cropFilter:''} right now.</div>`:listings.map(l=>lcard(l,'broker')).join('');
-  }catch(e){cont.innerHTML=`<div class="empty">Error loading listings.<br><small style='color:var(--rd)'>${e.message}</small></div>`;console.error('listings:',e);}
+    if(cnt)cnt.textContent=listings.length+' listing'+(listings.length!==1?'s':'');
+    cont.innerHTML=listings.length===0
+      ?`<div class="empty">No listings${S.cropFilter!=='All'?' for '+S.cropFilter:''} right now.</div>`
+      :listings.map(l=>lcard(l,'broker')).join('');
+  }catch(e){
+    cont.innerHTML=`<div class="empty">Error loading listings.<br><small style='color:var(--rd)'>${e.message}</small></div>`;
+    console.error('listings:',e);
+  }
 }
 
 window.setCropFilter=function(f){S.cropFilter=f;showScr('browse');};
