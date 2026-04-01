@@ -2300,8 +2300,8 @@ function triggerPostDealRatings(offerId){
 // ─── HELPERS ───
 function lcard(l,viewer){
   if(!window._lc)window._lc=[];if(!window._lc.find(x=>x.id===l.id))window._lc.push(l);
-  const avail=avail2||((l.qty||0)-(l.reserved||0));
   const avail2=(l.qty||0)-(l.reserved||0);
+  const avail=Math.max(0,avail2);
   const stat=l.status!=='available'?'<span class="badge bgr">Sold</span>':avail2<=0?'<span class="badge ba">Fully reserved</span>':'<span class="badge bg">Available</span>'+(l.reserved>0?` <span class="qty-res">${l.reserved.toLocaleString()} kg reserved</span>`:'');
   // icon lookup: use listing's own photo URL, or crop icon from admin, or emoji fallback
   const cropMeta=CROPS.find(c=>c.name===l.crop)||{};
