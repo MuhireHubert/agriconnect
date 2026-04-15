@@ -2333,67 +2333,73 @@ function lcard(l,viewer){
   </div>`;}
 
 window.viewListingDetail=async function(listingId){
-  // Get from cache or Firestore
-  let l=window._lc?.find(x=>x.id===listingId);
-  if(!l){
-    const snap=await getDoc(doc(db,'listings',listingId)).catch(()=>null);
-    if(!snap?.exists()){toast('Listing not found.');return;}
-    l={id:listingId,...snap.data()};
-  }
-  const photos=l.photos||[];
-  const avail=Math.max(0,(l.qty||0)-(l.reserved||0));
-  const isBuyer=S.role==='broker';
-  // Find crop market price for this region
-  const cropMeta=CROPS.find(c=>c.name===l.crop)||{};
-  const marketPrice=cropMeta.prices?.[S.profile?.loc?.split(',')[0]]||cropMeta.prices?.['Rwanda (All)']||cropMeta.price||0;
-
-  document.getElementById('modal-content').innerHTML=`
-    <div style="font-size:18px;font-weight:700;margin-bottom:2px;">${l.crop}</div>
-    <div style="font-size:12px;color:var(--g5);margin-bottom:14px;">Posted by ${l.farmerName} · ⭐ ${(l.farmerRating||5).toFixed(1)}</div>
-
-    ${photos.length?`<div style="display:grid;grid-template-columns:repeat(${Math.min(photos.length,3)},1fr);gap:6px;margin-bottom:14px;">
-      ${photos.map(p=>`<img src="${p}" style="width:100%;height:110px;object-fit:cover;border-radius:var(--rsm);cursor:zoom-in;" onclick="window.open('${p}','_blank')" alt="produce">`).join('')}
-    </div>`:'<div style="background:var(--g1);border-radius:var(--rsm);height:80px;display:flex;align-items:center;justify-content:center;color:var(--g3);font-size:13px;margin-bottom:14px;">No photos uploaded</div>'}
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
-        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">PRICE</div>
-        <div style="font-size:18px;font-weight:700;color:var(--gm);">${l.price} RWF/kg</div>
-        ${marketPrice&&Math.abs(l.price-marketPrice)>5?`<div style="font-size:10px;color:${l.price<marketPrice?'var(--gm)':'var(--am)'};">${l.price<marketPrice?'▼ Below':'▲ Above'} market (${marketPrice} RWF/kg)</div>`:''}
-      </div>
-      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
-        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">AVAILABLE</div>
-        <div style="font-size:18px;font-weight:700;">${avail.toLocaleString()} kg</div>
-        <div style="font-size:10px;color:var(--g3);">${(avail/1000).toFixed(1)} tonnes</div>
-      </div>
-      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
-        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">📍 LOCATION</div>
-        <div style="font-size:13px;font-weight:600;">${l.loc||'Not specified'}</div>
-      </div>
-      <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
-        <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">READY FROM</div>
-        <div style="font-size:13px;font-weight:600;">${l.date?new Date(l.date).toLocaleDateString('en-RW',{day:'numeric',month:'short',year:'numeric'}):'Now'}</div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-      ${l.trustedSeller?'<span class="qbadge qbadge-trust">⭐ Trusted Seller</span>':''}
-      ${l.photoVerified?'<span class="qbadge qbadge-photo">📷 Photo Verified</span>':''}
-      ${(l.qty>=2000||(l.price*l.qty)>=500000)?'<span class="qbadge qbadge-aqa">🔍 AQA Eligible</span>':''}
-    </div>
-
-    ${l.notes?`<div style="background:var(--g0);border-radius:var(--rsm);padding:10px;font-size:13px;color:var(--g7);margin-bottom:12px;"><strong>Notes:</strong> ${l.notes}</div>`:''}
-
-    ${isBuyer&&avail>0?`<div style="background:var(--gl);border-radius:var(--rsm);padding:10px;font-size:12px;color:var(--gd);margin-bottom:12px;">
-      💰 If you buy ${avail.toLocaleString()} kg: total <strong>${(l.price*avail).toLocaleString()} RWF</strong> + 2% fee = <strong>${Math.round(l.price*avail*1.02).toLocaleString()} RWF</strong>
-    </div>`:''}
-
-    <div class="mact">
-      <button class="btn btn-og" onclick="closeModal()">Close</button>
-      ${isBuyer&&avail>0?`<button class="btn btn-og btn-sm" onclick="closeModal();openChatFromListing('${l.id}','${l.userId}','${l.farmerName}','${l.crop}')">💬 Chat</button>`:''}
-      ${isBuyer&&avail>0?`<button class="btn btn-b" onclick="closeModal();openOfferModal('${l.id}')">Make offer</button>`:''}
-    </div>`;
+  // Always fetch fresh from Firestore to get latest photos
+  document.getElementById('modal-content').innerHTML='<div class="loading-inline">Loading...</div>';
   document.getElementById('modal').classList.add('open');
+  try{
+    const snap=await getDoc(doc(db,'listings',listingId));
+    if(!snap.exists()){toast('Listing not found.');closeModal();return;}
+    const l={id:listingId,...snap.data()};
+    // Update cache with fresh data
+    if(window._lc){const idx=window._lc.findIndex(x=>x.id===listingId);if(idx>=0)window._lc[idx]=l;else window._lc.push(l);}
+    const photos=l.photos||[];
+    const avail=Math.max(0,(l.qty||0)-(l.reserved||0));
+    const isBuyer=S.role==='broker'; // internal role name is still 'broker'
+    const cropMeta=CROPS.find(c=>c.name===l.crop)||{};
+    const marketPrice=cropMeta.prices?.[S.profile?.loc?.split(',')[0]]||cropMeta.prices?.['Rwanda (All)']||cropMeta.price||0;
+
+    document.getElementById('modal-content').innerHTML=`
+      <div style="font-size:18px;font-weight:700;margin-bottom:2px;">${l.crop}</div>
+      <div style="font-size:12px;color:var(--g5);margin-bottom:12px;">Posted by ${l.farmerName} · ⭐ ${(l.farmerRating||5).toFixed(1)}</div>
+
+      ${photos.length
+        ?`<div style="display:grid;grid-template-columns:repeat(${Math.min(photos.length,3)},1fr);gap:6px;margin-bottom:14px;">
+            ${photos.map(p=>`<img src="${p}" style="width:100%;height:130px;object-fit:cover;border-radius:var(--rsm);cursor:zoom-in;" onclick="window.open('${p}','_blank')" alt="produce photo">`).join('')}
+          </div>
+          <div style="font-size:10px;color:var(--g3);text-align:center;margin-bottom:12px;">Tap any photo to open full size</div>`
+        :'<div style="background:var(--g1);border-radius:var(--rsm);height:70px;display:flex;align-items:center;justify-content:center;color:var(--g3);font-size:13px;margin-bottom:14px;">No photos uploaded</div>'}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+          <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">PRICE</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gm);">${l.price} RWF/kg</div>
+          ${marketPrice&&Math.abs(l.price-marketPrice)>5?`<div style="font-size:10px;color:${l.price<marketPrice?'var(--gm)':'var(--am)'};">${l.price<marketPrice?'▼ Below':'▲ Above'} market (${marketPrice} RWF)</div>`:''}
+        </div>
+        <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+          <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">AVAILABLE</div>
+          <div style="font-size:18px;font-weight:700;">${avail.toLocaleString()} kg</div>
+          <div style="font-size:10px;color:var(--g3);">${(avail/1000).toFixed(1)} tonnes</div>
+        </div>
+        <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+          <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">📍 FARMER LOCATION</div>
+          <div style="font-size:12px;font-weight:600;">${l.loc||'Not specified'}</div>
+        </div>
+        <div style="background:var(--g0);border-radius:var(--rsm);padding:10px;">
+          <div style="font-size:10px;color:var(--g5);margin-bottom:2px;">READY FROM</div>
+          <div style="font-size:12px;font-weight:600;">${l.date?new Date(l.date).toLocaleDateString('en-RW',{day:'numeric',month:'short',year:'numeric'}):'Now'}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+        ${l.trustedSeller?'<span class="qbadge qbadge-trust">⭐ Trusted Seller</span>':''}
+        ${l.photoVerified?'<span class="qbadge qbadge-photo">📷 Photo Verified</span>':''}
+        ${(l.qty>=2000||(l.price*l.qty)>=500000)?'<span class="qbadge qbadge-aqa">🔍 AQA Eligible</span>':''}
+      </div>
+
+      ${l.notes?`<div style="background:var(--g0);border-radius:var(--rsm);padding:10px;font-size:13px;color:var(--g7);margin-bottom:12px;"><strong>Notes:</strong> ${l.notes}</div>`:''}
+
+      ${isBuyer&&avail>0?`<div style="background:var(--gl);border-radius:var(--rsm);padding:10px;font-size:12px;color:var(--gd);margin-bottom:12px;">
+        💰 Buy ${avail.toLocaleString()} kg: <strong>${(l.price*avail).toLocaleString()} RWF</strong> + 2% fee = <strong>${Math.round(l.price*avail*1.02).toLocaleString()} RWF</strong>
+      </div>`:''}
+
+      <div class="mact">
+        <button class="btn btn-og" onclick="closeModal()">Close</button>
+        ${isBuyer&&avail>0?`<button class="btn btn-og btn-sm" onclick="closeModal();openChatFromListing('${l.id}','${l.userId}','${l.farmerName}','${l.crop}')">💬 Chat</button>`:''}
+        ${isBuyer&&avail>0?`<button class="btn btn-b" onclick="closeModal();openOfferModal('${l.id}')">Make offer</button>`:''}
+      </div>`;
+  }catch(e){
+    document.getElementById('modal-content').innerHTML=`<div class="empty">Could not load listing.<br><small style="color:var(--rd)">${e.message}</small></div><div class="mact"><button class="btn btn-og" onclick="closeModal()">Close</button></div>`;
+  }
 };
 
 window.viewListingPhotos=async function(listingId){
